@@ -1,12 +1,13 @@
 "use client";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo } from "react";
 import { ResponsiveMasonry } from "react-responsive-masonry";
 import Masonry from "react-responsive-masonry";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Camera, Filter, X, Check } from "lucide-react";
+import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2 } from "lucide-react";
 import galleryData from "../data/gallery.json";
 import tagsData from "../data/tags.json";
+import { useEffect } from "react";
 
 /* ================= TYPES ================= */
 type GalleryImage = {
@@ -25,8 +26,21 @@ export function Gallery() {
     const [tapIndex, setTapIndex] = useState<number | null>(null);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    /* ================= KEYBOARD NAV ================= */
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (lightboxIndex === null) return;
+            if (e.key === "Escape") setLightboxIndex(null);
+            if (e.key === "ArrowRight") nextImage();
+            if (e.key === "ArrowLeft") prevImage();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [lightboxIndex]);
 
     /* ================= INTERACTION ================= */
     const handleInteraction = (index: number) => {
@@ -68,6 +82,16 @@ export function Gallery() {
                 ? prev.filter((t) => t !== tag)
                 : [...prev, tag]
         );
+    };
+
+    const nextImage = () => {
+        if (lightboxIndex === null) return;
+        setLightboxIndex((lightboxIndex + 1) % filteredImages.length);
+    };
+
+    const prevImage = () => {
+        if (lightboxIndex === null) return;
+        setLightboxIndex((lightboxIndex - 1 + filteredImages.length) % filteredImages.length);
     };
 
     /* ================= UI ================= */
@@ -172,11 +196,12 @@ export function Gallery() {
                             key={image.url} // ✅ FIXED KEY
                             whileHover={{ y: -10 }}
                             transition={{ type: "spring", stiffness: 200 }}
-                            className="relative rounded-xl overflow-hidden cursor-pointer"
+                            className="relative rounded-2xl overflow-hidden cursor-pointer group"
                             onMouseEnter={() => setHoveredIndex(index)}
                             onMouseLeave={() => setHoveredIndex(null)}
-                            onClick={() => handleInteraction(index)}
+                            onClick={() => setLightboxIndex(index)}
                         >
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
                             <ImageWithFallback
                                 src={image.url}
                                 alt={image.label}
@@ -208,11 +233,112 @@ export function Gallery() {
                 </Masonry>
             </ResponsiveMasonry>
 
+            {/* ================= LIGHTBOX ================= */}
+            <AnimatePresence>
+                {lightboxIndex !== null && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center select-none"
+                    >
+                        {/* Background Overlay to close */}
+                        <div className="absolute inset-0" onClick={() => setLightboxIndex(null)} />
+
+                        {/* Controls */}
+                        <div className="absolute top-6 right-6 flex items-center gap-4 z-[110]">
+                            <button 
+                                onClick={() => {
+                                    if (navigator.share) {
+                                        navigator.share({
+                                            title: filteredImages[lightboxIndex].label,
+                                            url: filteredImages[lightboxIndex].url
+                                        });
+                                    }
+                                }}
+                                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+                            >
+                                <Share2 className="w-5 h-5" />
+                            </button>
+                            <button 
+                                onClick={() => setLightboxIndex(null)}
+                                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Navigation */}
+                        <button 
+                            onClick={prevImage}
+                            className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all z-[110] hidden md:block"
+                        >
+                            <ChevronLeft className="w-8 h-8" />
+                        </button>
+                        <button 
+                            onClick={nextImage}
+                            className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all z-[110] hidden md:block"
+                        >
+                            <ChevronRight className="w-8 h-8" />
+                        </button>
+
+                        {/* Image Container */}
+                        <motion.div 
+                            key={lightboxIndex}
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="relative max-w-[90vw] max-h-[85vh] z-[105] flex flex-col items-center"
+                        >
+                            <div className="relative group/lb overflow-hidden rounded-2xl shadow-2xl">
+                                <ImageWithFallback
+                                    src={filteredImages[lightboxIndex].url}
+                                    alt={filteredImages[lightboxIndex].label}
+                                    className="max-w-full max-h-[75vh] object-contain"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/lb:opacity-100 transition-opacity duration-500" />
+                            </div>
+
+                            {/* Image Info */}
+                            <div className="mt-8 text-center">
+                                <motion.h3 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="text-2xl md:text-4xl font-serif text-white mb-2"
+                                >
+                                    {filteredImages[lightboxIndex].label}
+                                </motion.h3>
+                                <div className="flex items-center justify-center gap-3">
+                                    <span className="px-3 py-1 bg-white/10 rounded-full text-xs text-[#94A3B8] uppercase tracking-widest font-medium">
+                                        {filteredImages[lightboxIndex].category}
+                                    </span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+                                    <div className="flex gap-2">
+                                        {filteredImages[lightboxIndex].tags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 3).map((tag, i) => (
+                                            <span key={i} className="text-xs text-[#F59E0B]">#{tag}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Index Indicator */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[#94A3B8] text-sm font-medium">
+                            {lightboxIndex + 1} / {filteredImages.length}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ================= EMPTY STATE ================= */}
             {filteredImages.length === 0 && (
-                <p className="text-center text-gray-400 mt-10">
-                    No images found
-                </p>
+                <div className="text-center py-40">
+                    <Camera className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                    <p className="text-xl text-[#94A3B8] font-serif">
+                        No captures found in this category
+                    </p>
+                </div>
             )}
         </div>
     );

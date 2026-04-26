@@ -43,3 +43,6 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Security
+src/data/admin.json
