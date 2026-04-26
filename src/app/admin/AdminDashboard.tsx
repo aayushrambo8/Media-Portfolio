@@ -14,10 +14,12 @@ type GalleryImage = {
 };
 
 export default function AdminDashboard({ initialTags, initialImages }: { initialTags: string[], initialImages: GalleryImage[] }) {
+  const [availableTags, setAvailableTags] = useState(initialTags);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("Artist");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customTags, setCustomTags] = useState("");
   
   const [newTag, setNewTag] = useState("");
   
@@ -45,6 +47,7 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
     setLabel("");
     setCategory("Artist");
     setSelectedTags([]);
+    setCustomTags("");
   };
 
   const handleAddOrUpdateImage = async (e: React.FormEvent) => {
@@ -56,11 +59,29 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
     setLoading(true);
     setMessage("");
 
+    let finalTags = [...selectedTags];
+    if (customTags.trim()) {
+      const newTagsList = customTags.split(",").map(t => t.trim()).filter(Boolean);
+      for (const t of newTagsList) {
+        if (!availableTags.includes(t)) {
+          await addTag(t);
+          setAvailableTags(prev => {
+            const next = [...prev, t];
+            next.sort();
+            return next;
+          });
+        }
+        if (!finalTags.includes(t)) {
+          finalTags.push(t);
+        }
+      }
+    }
+
     const newImageData = {
       url,
       label,
       category,
-      tags: selectedTags.join(", ")
+      tags: finalTags.join(", ")
     };
 
     let res;
@@ -72,6 +93,7 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
 
     if (res.success) {
       setMessage(editingUrl ? "Image updated successfully!" : "Image added successfully!");
+      if (res.tags) setAvailableTags(res.tags);
       cancelEdit();
     } else {
       setMessage("Error saving image: " + res.error);
@@ -86,6 +108,7 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
     const res = await deleteImage(imgUrl);
     if (res.success) {
       setMessage("Image deleted successfully!");
+      if (res.tags) setAvailableTags(res.tags);
       if (editingUrl === imgUrl) cancelEdit();
     } else {
       setMessage("Error deleting image: " + res.error);
@@ -98,9 +121,17 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
     if(!newTag) return;
     setLoading(true);
     setMessage("");
-    const res = await addTag(newTag);
+    const formattedTag = newTag.trim();
+    const res = await addTag(formattedTag);
     if (res.success) {
       setMessage("Tag added successfully!");
+      if (!availableTags.includes(formattedTag)) {
+        setAvailableTags(prev => {
+          const next = [...prev, formattedTag];
+          next.sort();
+          return next;
+        });
+      }
       setNewTag("");
     } else {
       setMessage("Error adding tag: " + res.error);
@@ -201,7 +232,7 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
             <div className="flex flex-col gap-2">
               <label className="text-sm text-[#94A3B8]">Select Tags</label>
               <div className="flex flex-wrap gap-2 p-4 bg-black/20 border border-white/10 rounded-xl max-h-48 overflow-y-auto custom-scrollbar">
-                {initialTags.map(tag => (
+                {availableTags.map(tag => (
                   <label key={tag} className="flex items-center gap-2 cursor-pointer group">
                     <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${
                       selectedTags.includes(tag) ? "bg-[#F59E0B] border-transparent" : "border-white/20 group-hover:border-white/40"
@@ -220,6 +251,17 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
                   </label>
                 ))}
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm text-[#94A3B8]">Other / Custom Tags (comma separated)</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Special Guest, 2024" 
+                value={customTags}
+                onChange={e => setCustomTags(e.target.value)}
+                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+              />
             </div>
 
             <button

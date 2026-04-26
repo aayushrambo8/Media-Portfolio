@@ -9,6 +9,32 @@ const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
 const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
 const ADMIN_FILE = path.join(process.cwd(), "src/data/admin.json");
 
+async function autoPruneTags() {
+  const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
+  const images = JSON.parse(galleryData);
+  
+  const activeTags = new Set<string>();
+  images.forEach((img: any) => {
+    if (img.tags) {
+      img.tags.split(",").forEach((t: string) => {
+        const trimmed = t.trim();
+        if (trimmed) activeTags.add(trimmed);
+      });
+    }
+  });
+
+  const tagsData = await fs.readFile(TAGS_FILE, "utf-8");
+  const currentTags = JSON.parse(tagsData) as string[];
+  
+  const newTags = currentTags.filter(tag => activeTags.has(tag));
+  
+  if (newTags.length !== currentTags.length) {
+    await fs.writeFile(TAGS_FILE, JSON.stringify(newTags.sort(), null, 2));
+    return newTags.sort();
+  }
+  return currentTags;
+}
+
 export async function login(username: string, password: string) {
   try {
     const data = await fs.readFile(ADMIN_FILE, "utf-8");
@@ -92,9 +118,10 @@ export async function updateImage(originalUrl: string, updatedImage: { url: stri
     if (index !== -1) {
       images[index] = updatedImage;
       await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
+      const latestTags = await autoPruneTags();
       revalidatePath("/admin");
       revalidatePath("/gallery");
-      return { success: true };
+      return { success: true, tags: latestTags };
     }
     return { success: false, error: "Original image not found" };
   } catch (error) {
@@ -112,9 +139,10 @@ export async function deleteImage(url: string) {
     
     images = images.filter((img: any) => img.url !== url);
     await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
+    const latestTags = await autoPruneTags();
     revalidatePath("/admin");
     revalidatePath("/gallery");
-    return { success: true };
+    return { success: true, tags: latestTags };
   } catch (error) {
     return { success: false, error: "Failed to delete image" };
   }

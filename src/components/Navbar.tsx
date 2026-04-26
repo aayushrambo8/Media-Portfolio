@@ -44,7 +44,7 @@ export function Navbar() {
       transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
       className="fixed top-0 left-0 right-0 z-50"
     >
-      <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6">
+      <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6 flex justify-center">
         <motion.div
           animate={{
             backgroundColor: scrolled 
@@ -54,11 +54,15 @@ export function Navbar() {
             boxShadow: scrolled 
               ? "0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.1)" 
               : "0 4px 24px rgba(0, 0, 0, 0.3)",
+            padding: scrolled ? "0.5rem 1rem" : "1rem 2rem",
+            width: scrolled ? "auto" : "100%",
+            borderRadius: scrolled ? "50px" : "20px",
           }}
-          transition={{ duration: 0.3 }}
-          className="max-w-[1600px] mx-auto backdrop-blur-2xl rounded-[20px] px-4 md:px-8 lg:px-12 py-4 md:py-6 border"
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="backdrop-blur-2xl flex flex-col md:flex-row items-center justify-between border w-full transition-all"
+          style={{ maxWidth: scrolled ? "fit-content" : "1600px" }}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full md:w-auto gap-4">
             {/* Logo */}
             <Link href="/">
               <motion.div
@@ -66,17 +70,32 @@ export function Navbar() {
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shadow-lg">
-                  <span className="text-[#0A0E1A] font-bold text-lg"><img className="w-full" src="https://ik.imagekit.io/aayushrambo8/logo.jpg" alt="" /></span>
-                </div>
-                <div>
+                <motion.div 
+                  animate={{ 
+                    borderRadius: scrolled ? "50px" : "12px",
+                    scale: scrolled ? 0.9 : 1
+                  }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                  className="w-12 h-12 flex items-center justify-center shadow-lg overflow-hidden bg-white/5"
+                >
+                  <img className="w-full h-full object-contain p-1" src="https://ik.imagekit.io/aayushrambo8/logo.jpg" alt="Logo" />
+                </motion.div>
+                <motion.div
+                  initial={false}
+                  animate={{ 
+                    width: scrolled ? 0 : "auto", 
+                    opacity: scrolled ? 0 : 1,
+                    marginLeft: scrolled ? 0 : "0.75rem"
+                  }}
+                  className="overflow-hidden whitespace-nowrap"
+                >
                   <div className="text-lg font-bold tracking-[0.15em] text-[#F8FAFC]">
                     AAYUSH BABU
                   </div>
                   <div className="text-xs text-[#94A3B8] tracking-wider">
                     PHOTOGRAPHY
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             </Link>
 
@@ -114,9 +133,15 @@ export function Navbar() {
               {/* CTA Button */}
               <motion.button
                 onClick={handleContactClick}
-                whileHover={{ scale: 1.05, boxShadow: "0 8px 24px rgba(245, 158, 11, 0.3)" }}
-                whileTap={{ scale: 0.95 }}
-                className="ml-4 px-6 py-3 bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] text-[#0A0E1A] rounded-[12px] font-semibold text-sm shadow-lg"
+                initial={false}
+                animate={{ 
+                  width: scrolled ? 0 : "auto", 
+                  opacity: scrolled ? 0 : 1,
+                  paddingLeft: scrolled ? 0 : "1.5rem",
+                  paddingRight: scrolled ? 0 : "1.5rem",
+                  marginLeft: scrolled ? 0 : "1rem"
+                }}
+                className="overflow-hidden bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] text-[#0A0E1A] rounded-[12px] font-semibold text-sm shadow-lg whitespace-nowrap py-3"
               >
                 Get in Touch
               </motion.button>
