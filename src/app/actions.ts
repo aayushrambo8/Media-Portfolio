@@ -7,7 +7,6 @@ import { cookies } from "next/headers";
 
 const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
 const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
-const ADMIN_FILE = path.join(process.cwd(), "src/data/admin.json");
 const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
 const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
 
@@ -38,18 +37,14 @@ async function autoPruneTags() {
 }
 
 export async function login(username: string, password: string) {
-  try {
-    const data = await fs.readFile(ADMIN_FILE, "utf-8");
-    const admin = JSON.parse(data);
-    
-    if (admin.username === username && admin.password === password) {
-      (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
-      return { success: true };
-    }
-    return { success: false, error: "Invalid username or password" };
-  } catch (error) {
-    return { success: false, error: "Authentication system error" };
+  const envUser = process.env.ADMIN_USERNAME || "admin";
+  const envPass = process.env.ADMIN_PASSWORD || "admin123";
+
+  if (username === envUser && password === envPass) {
+    (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
+    return { success: true };
   }
+  return { success: false, error: "Invalid username or password" };
 }
 
 export async function logout() {
@@ -58,18 +53,12 @@ export async function logout() {
 }
 
 export async function updateCredentials(oldUser: string, oldPass: string, newUser: string, newPass: string) {
-  try {
-    const data = await fs.readFile(ADMIN_FILE, "utf-8");
-    const admin = JSON.parse(data);
-    
-    if (admin.username === oldUser && admin.password === oldPass) {
-      await fs.writeFile(ADMIN_FILE, JSON.stringify({ username: newUser, password: newPass }, null, 2));
-      return { success: true };
-    }
-    return { success: false, error: "Invalid current username or password" };
-  } catch (error) {
-    return { success: false, error: "Failed to update credentials" };
-  }
+  // Since we are using Environment Variables, we can't easily update them at runtime on Vercel.
+  // We recommend updating them in your Vercel Dashboard or .env file.
+  return { 
+    success: false, 
+    error: "Credential changes must now be made in your environment variables (Vercel Dashboard or .env file) for security." 
+  };
 }
 
 export async function addTag(tag: string) {
@@ -107,7 +96,7 @@ export async function addImage(image: { url: string; label: string; category: st
     await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
     revalidatePath("/admin");
     revalidatePath("/gallery");
-    return { success: true };
+    return { success: true, tags: undefined as string[] | undefined };
   } catch (error) {
     return { success: false, error: "Failed to add image" };
   }
@@ -163,7 +152,7 @@ export async function updateTimeline(events: any[]) {
     await fs.writeFile(TIMELINE_FILE, JSON.stringify(events, null, 2));
     revalidatePath("/");
     revalidatePath("/admin");
-    return { success: true };
+    return { success: true, tags: undefined as string[] | undefined };
   } catch (error) {
     return { success: false, error: "Failed to update timeline" };
   }
@@ -177,7 +166,7 @@ export async function updateMilestones(milestones: any[]) {
     await fs.writeFile(MILESTONES_FILE, JSON.stringify(milestones, null, 2));
     revalidatePath("/about");
     revalidatePath("/admin");
-    return { success: true };
+    return { success: true, tags: undefined as string[] | undefined };
   } catch (error) {
     return { success: false, error: "Failed to update milestones" };
   }
@@ -191,7 +180,7 @@ export async function reorderImages(newImages: any[]) {
     await fs.writeFile(GALLERY_FILE, JSON.stringify(newImages, null, 2));
     revalidatePath("/gallery");
     revalidatePath("/admin");
-    return { success: true };
+    return { success: true, tags: undefined as string[] | undefined };
   } catch (error) {
     return { success: false, error: "Failed to reorder images" };
   }
