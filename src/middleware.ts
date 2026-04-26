@@ -5,10 +5,10 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get('admin_session');
   const { pathname } = request.nextUrl;
 
-  // Protect /admin routes (except login)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+  // Protect /admin routes
+  if (pathname.startsWith('/admin')) {
     if (!session) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
@@ -16,5 +16,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin', '/admin/:path*'],
 };
