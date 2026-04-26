@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login, updateCredentials } from "../../actions";
+import { login, updateCredentials } from "../actions";
 import { motion, AnimatePresence } from "motion/react";
 import { Lock, User, RefreshCw, ArrowLeft } from "lucide-react";
 

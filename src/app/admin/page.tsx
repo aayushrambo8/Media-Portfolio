@@ -1,8 +1,15 @@
 import fs from "fs/promises";
 import path from "path";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
 
 export default async function AdminPage() {
+  const session = (await cookies()).get("admin_session");
+  if (!session) {
+    redirect("/login");
+  }
+
   const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
   const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
   const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
