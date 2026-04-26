@@ -7,13 +7,36 @@ import { cookies } from "next/headers";
 
 const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
 const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
+const ADMIN_FILE = path.join(process.cwd(), "src/data/admin.json");
 
-export async function login(password: string) {
-  if (password === "admin123") {
-    (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
-    return { success: true };
+export async function login(username: string, password: string) {
+  try {
+    const data = await fs.readFile(ADMIN_FILE, "utf-8");
+    const admin = JSON.parse(data);
+    
+    if (admin.username === username && admin.password === password) {
+      (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
+      return { success: true };
+    }
+    return { success: false, error: "Invalid username or password" };
+  } catch (error) {
+    return { success: false, error: "Authentication system error" };
   }
-  return { success: false, error: "Invalid password" };
+}
+
+export async function updateCredentials(oldUser: string, oldPass: string, newUser: string, newPass: string) {
+  try {
+    const data = await fs.readFile(ADMIN_FILE, "utf-8");
+    const admin = JSON.parse(data);
+    
+    if (admin.username === oldUser && admin.password === oldPass) {
+      await fs.writeFile(ADMIN_FILE, JSON.stringify({ username: newUser, password: newPass }, null, 2));
+      return { success: true };
+    }
+    return { success: false, error: "Invalid current username or password" };
+  } catch (error) {
+    return { success: false, error: "Failed to update credentials" };
+  }
 }
 
 export async function addTag(tag: string) {
@@ -54,5 +77,45 @@ export async function addImage(image: { url: string; label: string; category: st
     return { success: true };
   } catch (error) {
     return { success: false, error: "Failed to add image" };
+  }
+}
+
+export async function updateImage(originalUrl: string, updatedImage: { url: string; label: string; category: string; tags: string }) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    const data = await fs.readFile(GALLERY_FILE, "utf-8");
+    let images = JSON.parse(data);
+    
+    const index = images.findIndex((img: any) => img.url === originalUrl);
+    if (index !== -1) {
+      images[index] = updatedImage;
+      await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
+      revalidatePath("/admin");
+      revalidatePath("/gallery");
+      return { success: true };
+    }
+    return { success: false, error: "Original image not found" };
+  } catch (error) {
+    return { success: false, error: "Failed to update image" };
+  }
+}
+
+export async function deleteImage(url: string) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    const data = await fs.readFile(GALLERY_FILE, "utf-8");
+    let images = JSON.parse(data);
+    
+    images = images.filter((img: any) => img.url !== url);
+    await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
+    revalidatePath("/admin");
+    revalidatePath("/gallery");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete image" };
   }
 }

@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { addImage, addTag } from "../actions";
-import { Plus, Upload, Tag, Check, Image as ImageIcon } from "lucide-react";
+import { addImage, addTag, updateImage, deleteImage } from "../actions";
+import { Plus, Upload, Tag, Check, Image as ImageIcon, Edit2, Trash2, X, Save } from "lucide-react";
 import { motion } from "motion/react";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
-export default function AdminDashboard({ initialTags }: { initialTags: string[] }) {
+type GalleryImage = {
+    url: string;
+    label: string;
+    category: string;
+    tags: string;
+};
+
+export default function AdminDashboard({ initialTags, initialImages }: { initialTags: string[], initialImages: GalleryImage[] }) {
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("Artist");
@@ -15,12 +23,31 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  
+  const [editingUrl, setEditingUrl] = useState<string | null>(null);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
-  const handleAddImage = async (e: React.FormEvent) => {
+  const handleEditClick = (img: GalleryImage) => {
+    setEditingUrl(img.url);
+    setUrl(img.url);
+    setLabel(img.label);
+    setCategory(img.category);
+    setSelectedTags(img.tags.split(",").map(t => t.trim()).filter(t => t));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingUrl(null);
+    setUrl("");
+    setLabel("");
+    setCategory("Artist");
+    setSelectedTags([]);
+  };
+
+  const handleAddOrUpdateImage = async (e: React.FormEvent) => {
     e.preventDefault();
     if(!url || !label) {
       setMessage("Please fill out URL and Label");
@@ -29,20 +56,39 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
     setLoading(true);
     setMessage("");
 
-    const res = await addImage({
+    const newImageData = {
       url,
       label,
       category,
       tags: selectedTags.join(", ")
-    });
+    };
+
+    let res;
+    if (editingUrl) {
+      res = await updateImage(editingUrl, newImageData);
+    } else {
+      res = await addImage(newImageData);
+    }
 
     if (res.success) {
-      setMessage("Image added successfully!");
-      setUrl("");
-      setLabel("");
-      setSelectedTags([]);
+      setMessage(editingUrl ? "Image updated successfully!" : "Image added successfully!");
+      cancelEdit();
     } else {
-      setMessage("Error adding image: " + res.error);
+      setMessage("Error saving image: " + res.error);
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteImage = async (imgUrl: string) => {
+    if(!confirm("Are you sure you want to delete this image?")) return;
+    setLoading(true);
+    setMessage("");
+    const res = await deleteImage(imgUrl);
+    if (res.success) {
+      setMessage("Image deleted successfully!");
+      if (editingUrl === imgUrl) cancelEdit();
+    } else {
+      setMessage("Error deleting image: " + res.error);
     }
     setLoading(false);
   };
@@ -63,7 +109,7 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-20 px-4 md:px-8 max-w-5xl mx-auto">
+    <div className="min-h-screen pt-32 pb-20 px-4 md:px-8 max-w-6xl mx-auto">
       <div className="mb-12">
         <h1 className="text-4xl font-serif text-white mb-4">Admin Dashboard</h1>
         <p className="text-[#94A3B8]">Manage your portfolio gallery and tags securely.</p>
@@ -77,20 +123,27 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* ADD IMAGE FORM */}
+        {/* ADD / EDIT IMAGE FORM */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="md:col-span-2 bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl"
         >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] rounded-lg">
-              <ImageIcon className="w-5 h-5 text-[#0A0E1A]" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${editingUrl ? 'bg-gradient-to-br from-[#10B981] to-[#34D399]' : 'bg-gradient-to-br from-[#F59E0B] to-[#FBBF24]'}`}>
+                {editingUrl ? <Edit2 className="w-5 h-5 text-[#0A0E1A]" /> : <ImageIcon className="w-5 h-5 text-[#0A0E1A]" />}
+              </div>
+              <h2 className="text-2xl font-serif text-white">{editingUrl ? 'Edit Image' : 'Add New Image'}</h2>
             </div>
-            <h2 className="text-2xl font-serif text-white">Add New Image</h2>
+            {editingUrl && (
+              <button onClick={cancelEdit} className="text-sm text-[#94A3B8] hover:text-white flex items-center gap-1">
+                <X className="w-4 h-4" /> Cancel Edit
+              </button>
+            )}
           </div>
 
-          <form onSubmit={handleAddImage} className="flex flex-col gap-6">
+          <form onSubmit={handleAddOrUpdateImage} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <label className="text-sm text-[#94A3B8]">Image URL</label>
               <input 
@@ -152,10 +205,12 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 w-full bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] text-[#0A0E1A] font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              className={`mt-4 w-full text-[#0A0E1A] font-bold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 ${
+                editingUrl ? 'bg-gradient-to-r from-[#10B981] to-[#34D399]' : 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+              }`}
             >
-              <Upload className="w-5 h-5" />
-              {loading ? "Adding..." : "Upload Image to Gallery"}
+              {editingUrl ? <Save className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
+              {loading ? "Saving..." : editingUrl ? "Update Image" : "Upload Image to Gallery"}
             </button>
           </form>
         </motion.div>
@@ -196,8 +251,39 @@ export default function AdminDashboard({ initialTags }: { initialTags: string[] 
             </button>
           </form>
         </motion.div>
-
       </div>
+
+      {/* EXISTING GALLERY LIST */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-12 bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl"
+      >
+        <h2 className="text-2xl font-serif text-white mb-6">Existing Gallery</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {initialImages.map((img) => (
+            <div key={img.url} className="bg-black/20 rounded-xl overflow-hidden border border-white/10 group">
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                  <button onClick={() => handleEditClick(img)} className="p-2 bg-[#F59E0B] rounded-full hover:scale-110 transition-transform">
+                    <Edit2 className="w-4 h-4 text-[#0A0E1A]" />
+                  </button>
+                  <button onClick={() => handleDeleteImage(img.url)} className="p-2 bg-red-500 rounded-full hover:scale-110 transition-transform">
+                    <Trash2 className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-white font-medium truncate">{img.label}</h3>
+                <p className="text-xs text-[#94A3B8] mt-1 line-clamp-1">{img.tags}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
     </div>
   );
 }
