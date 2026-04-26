@@ -5,31 +5,19 @@ import { ResponsiveMasonry } from "react-responsive-masonry";
 import Masonry from "react-responsive-masonry";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Camera, Filter, X, Check } from "lucide-react";
+import galleryData from "../data/gallery.json";
+import tagsData from "../data/tags.json";
 
 /* ================= TYPES ================= */
 type GalleryImage = {
     url: string;
     label: string;
-    category: "Artist" | "Event";
+    category: string;
     tags: string;
 };
 
 /* ================= DATA ================= */
-const galleryImages: GalleryImage[] = [
-    {
-        url: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_1247.jpg",
-        label: "Live at Amiphoria'26",
-        category: "Artist",
-        tags: "live, artist, amiphoria, 2026",
-    },
-    {
-        url: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_1233.jpg",
-        label: "Live at Amiphoria'26",
-        category: "Event",
-        tags: "live, event, amiphoria, 2026",
-    },
-    // 👉 keep rest of your data here (unchanged)
-];
+const galleryImages: GalleryImage[] = galleryData;
 
 /* ================= COMPONENT ================= */
 export function Gallery() {
@@ -59,17 +47,7 @@ export function Gallery() {
         hoveredIndex === index || tapIndex === index;
 
     /* ================= TAG EXTRACTION ================= */
-    const allTags = useMemo(() => {
-        const tags = new Set<string>();
-
-        galleryImages.forEach((img) => {
-            img.tags.split(",").forEach((t: string) => {
-                tags.add(t.trim());
-            });
-        });
-
-        return Array.from(tags).sort();
-    }, []);
+    const allTags = tagsData;
 
     /* ================= FILTER ================= */
     const filteredImages = useMemo(() => {
@@ -78,7 +56,7 @@ export function Gallery() {
         return galleryImages.filter((img) => {
             const imgTags = img.tags.split(",").map((t: string) => t.trim());
 
-            return selectedTags.every((tag: string) =>
+            return selectedTags.some((tag: string) =>
                 imgTags.includes(tag)
             );
         });
@@ -101,41 +79,72 @@ export function Gallery() {
                 animate={{
                     opacity: isFilterOpen ? 1 : 0,
                     pointerEvents: isFilterOpen ? "auto" : "none",
-                    y: isFilterOpen ? 0 : 50,
                 }}
-                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80"
+                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             >
-                <div className="w-full max-w-2xl bg-[#1A1F2E] rounded-2xl p-6">
-                    <div className="flex justify-between mb-6">
-                        <h2 className="text-xl text-white">Filter Gallery</h2>
-                        <button onClick={() => setIsFilterOpen(false)}>
-                            <X />
-                        </button>
+                <motion.div 
+                    initial={false}
+                    animate={{
+                        scale: isFilterOpen ? 1 : 0.95,
+                        y: isFilterOpen ? 0 : 20,
+                    }}
+                    className="w-full max-w-md bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 rounded-[24px] p-6 shadow-2xl flex flex-col max-h-[85vh]"
+                >
+                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 flex-shrink-0">
+                        <h2 className="text-2xl font-serif text-white">Filters</h2>
+                        <div className="flex items-center gap-4">
+                            {selectedTags.length > 0 && (
+                                <button 
+                                    onClick={() => setSelectedTags([])}
+                                    className="text-sm text-[#94A3B8] hover:text-white transition-colors"
+                                >
+                                    Clear all
+                                </button>
+                            )}
+                            <button 
+                                onClick={() => setIsFilterOpen(false)}
+                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                            >
+                                <X className="w-5 h-5 text-white" />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mb-6">
+                    <div className="flex flex-col gap-2 mb-8 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {allTags.map((tag) => (
-                            <button
+                            <label
                                 key={tag}
-                                onClick={() => toggleTag(tag)}
-                                className={`px-3 py-1 rounded ${
-                                    selectedTags.includes(tag)
-                                        ? "bg-yellow-400 text-black"
-                                        : "bg-gray-700 text-white"
-                                }`}
+                                className="flex items-center gap-4 cursor-pointer group p-3 hover:bg-white/5 rounded-xl transition-all duration-200"
                             >
-                                {tag}
-                            </button>
+                                <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 ${
+                                    selectedTags.includes(tag) 
+                                        ? "bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] border-transparent shadow-[0_0_15px_rgba(245,158,11,0.4)]" 
+                                        : "border-white/20 group-hover:border-white/40 bg-black/20"
+                                }`}>
+                                    {selectedTags.includes(tag) && <Check className="w-4 h-4 text-[#0A0E1A]" strokeWidth={3} />}
+                                </div>
+                                <span className={`text-lg transition-colors ${
+                                    selectedTags.includes(tag) ? "text-white font-medium" : "text-[#94A3B8] group-hover:text-white"
+                                }`}>
+                                    {tag}
+                                </span>
+                                <input 
+                                    type="checkbox"
+                                    className="hidden"
+                                    checked={selectedTags.includes(tag)}
+                                    onChange={() => toggleTag(tag)}
+                                />
+                            </label>
                         ))}
                     </div>
 
                     <button
                         onClick={() => setIsFilterOpen(false)}
-                        className="w-full bg-yellow-400 py-2 rounded"
+                        className="w-full bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:shadow-[0_8px_24px_rgba(245,158,11,0.3)] text-[#0A0E1A] py-4 rounded-[16px] font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
                     >
                         Show {filteredImages.length} Results
                     </button>
-                </div>
+                </motion.div>
             </motion.div>
 
             {/* ================= HEADER ================= */}

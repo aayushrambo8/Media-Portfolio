@@ -194,47 +194,52 @@ export function About() {
           className="mb-20 md:mb-32"
         >
           <h2 className="text-3xl md:text-5xl mb-10 md:mb-16 font-serif text-[#F8FAFC] text-center">Milestones</h2>
-          <div className="relative max-w-[900px] mx-auto px-2">
+          <div className="relative max-w-[900px] mx-auto px-4 md:px-0">
             {/* Timeline line */}
-            <div className="absolute left-[10px] md:left-[11px] top-0 w-[2px] md:w-[3px] h-full bg-white/5 rounded-full" />
+            <div className="absolute left-[25px] md:left-1/2 md:-translate-x-1/2 top-0 w-[2px] md:w-[3px] h-full bg-white/5 rounded-full" />
             <motion.div
               initial={{ height: 0 }}
               whileInView={{ height: "100%" }}
               viewport={{ once: true }}
               transition={{ duration: 1.5, delay: 0.3 }}
-              className="absolute left-[10px] md:left-[11px] top-0 w-[2px] md:w-[3px] bg-gradient-to-b from-[#F59E0B] via-[#FBBF24] to-[#F59E0B] rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]"
+              className="absolute left-[25px] md:left-1/2 md:-translate-x-1/2 top-0 w-[2px] md:w-[3px] bg-gradient-to-b from-[#F59E0B] via-[#FBBF24] to-[#F59E0B] rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]"
             />
 
-            <div className="space-y-10 md:space-y-12">
-              {achievements.map((achievement, index) => (
+            <div className="space-y-12 md:space-y-24">
+              {achievements.map((achievement, index) => {
+                const isEven = index % 2 === 0;
+                return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{
                     duration: 0.6,
-                    delay: 0.5 + index * 0.1,
+                    delay: 0.2 + index * 0.1,
                   }}
-                  className="flex items-start gap-6 md:gap-8 group relative"
+                  className={`flex flex-col md:flex-row items-start md:items-center relative group ${!isEven ? 'md:flex-row-reverse' : ''}`}
                 >
-                  {/* Glowing Dot */}
-                  <div className="relative mt-1 z-10">
-                    <motion.div
-                      whileHover={{ scale: 1.3 }}
-                      className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] shadow-[0_0_20px_rgba(245,158,11,0.6)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.8)] transition-all duration-300"
-                    />
-                  </div>
-
                   {/* Content */}
-                  <div className="flex-1 pb-2">
-                    <h3 className="text-lg md:text-xl text-[#F8FAFC] mb-1 md:mb-2 group-hover:text-[#FBBF24] transition-colors duration-300 font-medium leading-snug">
+                  <div className={`w-full md:w-1/2 pl-14 md:pl-0 ${isEven ? 'md:pr-14 md:text-right' : 'md:pl-14 md:text-left'}`}>
+                    <h3 className="text-xl md:text-2xl text-[#F8FAFC] mb-2 group-hover:text-[#FBBF24] transition-colors duration-300 font-serif leading-snug">
                       {achievement.title}
                     </h3>
                     <p className="text-[#94A3B8] text-base md:text-lg">{achievement.subtext}</p>
                   </div>
+
+                  {/* Glowing Dot - Absolute center on desktop, absolute left on mobile */}
+                  <div className="absolute left-[16px] md:left-1/2 md:-translate-x-1/2 top-0 md:top-1/2 md:-translate-y-1/2 z-10">
+                    <motion.div
+                      whileHover={{ scale: 1.3 }}
+                      className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] shadow-[0_0_20px_rgba(245,158,11,0.6)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.8)] transition-all duration-300 border-4 border-[#1A1F2E]"
+                    />
+                  </div>
+                  
+                  {/* Empty space */}
+                  <div className="hidden md:block md:w-1/2" />
                 </motion.div>
-              ))}
+              )})}
             </div>
           </div>
         </motion.div>
