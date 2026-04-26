@@ -10,9 +10,9 @@ import {
   Plus, Upload, Tag, Check, Image as ImageIcon,
   Edit2, Trash2, X, Save, ArrowUp, ArrowDown,
   Clock, Award, Camera, Music, Users, Calendar, Sparkles,
-  Settings, LogOut, Lock, User, ChevronDown
+  Settings, LogOut, Lock, User, ChevronDown, GripVertical
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, Reorder } from "motion/react";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
 type GalleryImage = {
@@ -189,9 +189,13 @@ export default function AdminDashboard({
     if (newIndex < 0 || newIndex >= newImages.length) return;
 
     [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
-    setImages(newImages);
+    handleReorder(newImages);
+  };
+
+  const handleReorder = async (newOrder: GalleryImage[]) => {
+    setImages(newOrder);
     setLoading(true);
-    const res = await reorderImages(newImages);
+    const res = await reorderImages(newOrder);
     if (!res.success) setMessage("Failed to save new order");
     setLoading(false);
   };
@@ -389,30 +393,55 @@ export default function AdminDashboard({
 
           {/* LIST */}
           <div className="bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl">
-            <h2 className="text-2xl font-serif text-white mb-8">Manage Gallery Order</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {images.map((img, idx) => (
-                <div key={img.url} className="bg-black/20 rounded-2xl overflow-hidden border border-white/10 group relative">
-                  <div className="aspect-[4/3] relative">
-                    <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 flex flex-col gap-2">
-                      <button onClick={() => moveImage(idx, 'up')} disabled={idx === 0} className="p-2 bg-black/60 rounded-full text-white hover:bg-[#F59E0B] disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
-                      <button onClick={() => moveImage(idx, 'down')} disabled={idx === images.length - 1} className="p-2 bg-black/60 rounded-full text-white hover:bg-[#F59E0B] disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                  <div className="p-4 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-white font-medium truncate w-40">{img.label}</h4>
-                      <p className="text-xs text-[#94A3B8]">{img.category}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleEditClick(img)} className="p-2 text-[#94A3B8] hover:text-white"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => handleDeleteImage(img.url)} className="p-2 text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-serif text-white">Manage Gallery Order</h2>
+              <p className="text-sm text-[#94A3B8] italic flex items-center gap-2">
+                <GripVertical className="w-4 h-4" /> Drag images to reorder
+              </p>
             </div>
+            
+            <Reorder.Group 
+              axis="y" 
+              values={images} 
+              onReorder={handleReorder}
+              className="space-y-4"
+            >
+              {images.map((img, idx) => (
+                <Reorder.Item 
+                  key={img.url} 
+                  value={img}
+                  className="bg-black/20 rounded-2xl overflow-hidden border border-white/10 group flex items-center p-4 gap-6 cursor-grab active:cursor-grabbing transition-colors hover:bg-white/5"
+                >
+                  <div className="flex-shrink-0 flex items-center gap-4">
+                    <GripVertical className="w-5 h-5 text-white/20 group-hover:text-white/40" />
+                    <div className="w-24 h-24 rounded-lg overflow-hidden border border-white/10">
+                      <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-medium truncate text-lg mb-1">{img.label}</h4>
+                    <p className="text-sm text-[#94A3B8]">{img.category}</p>
+                    <div className="flex gap-2 mt-2">
+                      {img.tags.split(",").slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[10px] text-[#F59E0B] px-2 py-0.5 bg-[#F59E0B]/10 rounded-full border border-[#F59E0B]/20">
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1 mr-4 border-r border-white/10 pr-4">
+                      <button onClick={(e) => { e.stopPropagation(); moveImage(idx, 'up'); }} disabled={idx === 0} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); moveImage(idx, 'down'); }} disabled={idx === images.length - 1} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); handleEditClick(img); }} className="p-3 text-[#94A3B8] hover:text-white bg-white/5 rounded-xl"><Edit2 className="w-5 h-5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.url); }} className="p-3 text-red-400 hover:text-red-300 bg-red-500/10 rounded-xl"><Trash2 className="w-5 h-5" /></button>
+                  </div>
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
           </div>
         </div>
       ) : (
