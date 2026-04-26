@@ -1,78 +1,27 @@
 "use client";
 import { motion, useScroll, useTransform } from "motion/react";
-import { Award, Camera, Music, Users, ArrowRight } from "lucide-react";
+import { Award, Camera, Music, Users, ArrowRight, LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-const timelineEvents = [
-  {
-    title: "Anwesha IIT Patna 2026",
-    description: "Official photographer for IIT Patna's premier tech and cultural festival",
-    type: "event",
-    icon: Award,
-    color: "#F59E0B",
-    image: "https://ik.imagekit.io/aayushrambo8/Anwesha'26.webp?updatedAt=1775391839991",
-  },
-  {
-    title: "Kaizen AIIMS Patna 2026",
-    description: "Complete event coverage for AIIMS Patna's annual medical college fest",
-    type: "event",
-    icon: Camera,
-    color: "#FBBF24",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6107.jpg",
-  },
-  {
-    title: "Raftaar",
-    description: "Official photographer for live concerts and performances",
-    type: "artist",
-    icon: Music,
-    color: "#F59E0B",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6099.jpg",
-  },
-  {
-    title: "Darshan Rawal",
-    description: "Captured iconic moments from concert tours",
-    type: "artist",
-    icon: Music,
-    color: "#FBBF24",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_0130.jpg",
-  },
-  {
-    title: "Chaar Diwari",
-    description: "Professional photography collaboration",
-    type: "artist",
-    icon: Users,
-    color: "#F59E0B",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_9981.jpg",
-  },
-  {
-    title: "Md. Irfaan Ali",
-    description: "Coverage of live performances and musical events",
-    type: "artist",
-    icon: Music,
-    color: "#FBBF24",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_4685.jpg",
-  },
-  {
-    title: "Shaan",
-    description: "Professional photography for concerts and live shows",
-    type: "artist",
-    icon: Music,
-    color: "#F59E0B",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6554.jpg",
-  },
-  {
-    title: "Sunanda Sharma",
-    description: "Professional photography for concerts and live shows",
-    type: "artist",
-    icon: Music,
-    color: "#F59E0B",
-    image: "https://ik.imagekit.io/aayushrambo8/compressed_DSC_1208.jpg",
-  },
-];
+const IconMap: Record<string, LucideIcon> = {
+  Award,
+  Camera,
+  Music,
+  Users,
+};
 
-export function Home() {
+export type TimelineEvent = {
+  title: string;
+  description: string;
+  type: string;
+  icon: string;
+  color: string;
+  image: string;
+};
+
+export function Home({ timelineEvents }: { timelineEvents: TimelineEvent[] }) {
   const [visibleItems, setVisibleItems] = useState<boolean[]>(
     new Array(timelineEvents.length).fill(false)
   );
@@ -322,7 +271,14 @@ export function Home() {
                         boxShadow: `0 0 0 6px ${event.color}15, 0 0 20px ${event.color}40`,
                       }}
                     >
-                      <event.icon className="w-5 h-5 md:w-7 md:h-7" style={{ color: event.color }} />
+                      {IconMap[event.icon] ? (
+                        (() => {
+                          const Icon = IconMap[event.icon];
+                          return <Icon className="w-5 h-5 md:w-7 md:h-7" style={{ color: event.color }} />;
+                        })()
+                      ) : (
+                        <Award className="w-5 h-5 md:w-7 md:h-7" style={{ color: event.color }} />
+                      )}
                     </motion.div>
                   </div>
 

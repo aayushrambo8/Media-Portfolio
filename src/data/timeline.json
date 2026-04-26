@@ -1,0 +1,66 @@
+[
+  {
+    "title": "Anwesha IIT Patna 2026",
+    "description": "Official photographer for IIT Patna's premier tech and cultural festival",
+    "type": "event",
+    "icon": "Award",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/Anwesha'26.webp?updatedAt=1775391839991"
+  },
+  {
+    "title": "Kaizen AIIMS Patna 2026",
+    "description": "Complete event coverage for AIIMS Patna's annual medical college fest",
+    "type": "event",
+    "icon": "Camera",
+    "color": "#FBBF24",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6107.jpg"
+  },
+  {
+    "title": "Raftaar",
+    "description": "Official photographer for live concerts and performances",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6099.jpg"
+  },
+  {
+    "title": "Darshan Rawal",
+    "description": "Captured iconic moments from concert tours",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#FBBF24",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_0130.jpg"
+  },
+  {
+    "title": "Chaar Diwari",
+    "description": "Professional photography collaboration",
+    "type": "artist",
+    "icon": "Users",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_9981.jpg"
+  },
+  {
+    "title": "Md. Irfaan Ali",
+    "description": "Coverage of live performances and musical events",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#FBBF24",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_4685.jpg"
+  },
+  {
+    "title": "Shaan",
+    "description": "Professional photography for concerts and live shows",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_6554.jpg"
+  },
+  {
+    "title": "Sunanda Sharma",
+    "description": "Professional photography for concerts and live shows",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_1208.jpg"
+  }
+]
