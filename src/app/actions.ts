@@ -14,7 +14,7 @@ const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
 async function autoPruneTags() {
   const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
   const images = JSON.parse(galleryData);
-  
+
   const activeTags = new Set<string>();
   images.forEach((img: any) => {
     if (img.tags) {
@@ -27,9 +27,9 @@ async function autoPruneTags() {
 
   const tagsData = await fs.readFile(TAGS_FILE, "utf-8");
   const currentTags = JSON.parse(tagsData) as string[];
-  
+
   const newTags = currentTags.filter(tag => activeTags.has(tag));
-  
+
   if (newTags.length !== currentTags.length) {
     await fs.writeFile(TAGS_FILE, JSON.stringify(newTags.sort(), null, 2));
     return newTags.sort();
@@ -47,10 +47,10 @@ export async function login(username: string, password: string) {
   const isHash = envPassHash.startsWith("$2a$");
 
   if (username === envUser) {
-    const isValid = isHash 
+    const isValid = isHash
       ? await bcrypt.compare(password, envPassHash)
       : password === envPassHash;
-      
+
     if (isValid) {
       (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
       return { success: true };
@@ -67,9 +67,9 @@ export async function logout() {
 export async function updateCredentials(oldUser: string, oldPass: string, newUser: string, newPass: string) {
   // Since we are using Environment Variables, we can't easily update them at runtime on Vercel.
   // We recommend updating them in your Vercel Dashboard or .env file.
-  return { 
-    success: false, 
-    error: "Credential changes must now be made in your environment variables (Vercel Dashboard or .env file) for security." 
+  return {
+    success: false,
+    error: "Credential changes must now be made in your environment variables (Vercel Dashboard or .env file) for security."
   };
 }
 
@@ -80,7 +80,7 @@ export async function addTag(tag: string) {
   try {
     const data = await fs.readFile(TAGS_FILE, "utf-8");
     const tags = JSON.parse(data) as string[];
-    
+
     const formattedTag = tag.trim();
     if (formattedTag && !tags.includes(formattedTag)) {
       tags.push(formattedTag);
@@ -102,9 +102,9 @@ export async function addImage(image: { url: string; label: string; category: st
   try {
     const data = await fs.readFile(GALLERY_FILE, "utf-8");
     const images = JSON.parse(data);
-    
+
     images.unshift(image);
-    
+
     await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
     revalidatePath("/admin");
     revalidatePath("/gallery");
@@ -121,7 +121,7 @@ export async function updateImage(originalUrl: string, updatedImage: { url: stri
   try {
     const data = await fs.readFile(GALLERY_FILE, "utf-8");
     let images = JSON.parse(data);
-    
+
     const index = images.findIndex((img: any) => img.url === originalUrl);
     if (index !== -1) {
       images[index] = updatedImage;
@@ -144,7 +144,7 @@ export async function deleteImage(url: string) {
   try {
     const data = await fs.readFile(GALLERY_FILE, "utf-8");
     let images = JSON.parse(data);
-    
+
     images = images.filter((img: any) => img.url !== url);
     await fs.writeFile(GALLERY_FILE, JSON.stringify(images, null, 2));
     const latestTags = await autoPruneTags();
