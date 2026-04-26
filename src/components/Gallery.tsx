@@ -72,7 +72,7 @@ export function Gallery() {
 
     /* ================= UI ================= */
     return (
-        <div className="pt-24 pb-20 px-4 relative">
+        <div className="pt-40 pb-20 px-4 relative">
             {/* ================= FILTER MODAL ================= */}
             <motion.div
                 initial={false}
@@ -80,7 +80,7 @@ export function Gallery() {
                     opacity: isFilterOpen ? 1 : 0,
                     pointerEvents: isFilterOpen ? "auto" : "none",
                 }}
-                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                className="fixed inset-0 z-[60] flex items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.3)_0%,_rgba(0,0,0,0.95)_100%)] backdrop-blur-xl p-4"
             >
                 <motion.div 
                     initial={false}
@@ -148,14 +148,20 @@ export function Gallery() {
             </motion.div>
 
             {/* ================= HEADER ================= */}
-            <div className="text-center mb-10">
-                <h1 className="text-4xl text-white mb-4">Gallery</h1>
-                <button
-                    onClick={() => setIsFilterOpen(true)}
-                    className="flex items-center gap-2 mx-auto bg-gray-800 px-4 py-2 rounded"
-                >
-                    <Filter /> Filter
-                </button>
+            <div className="flex items-center justify-between mb-12 border-b border-white/10 pb-6">
+                {/* Spacer for perfect center alignment */}
+                <div className="flex-1 hidden md:block"></div>
+                
+                <h1 className="text-4xl text-white tracking-widest font-serif text-center flex-1">GALLERY</h1>
+                
+                <div className="flex-1 flex justify-end">
+                    <button
+                        onClick={() => setIsFilterOpen(true)}
+                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border border-white/10"
+                    >
+                        <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span>
+                    </button>
+                </div>
             </div>
 
             {/* ================= GRID ================= */}
