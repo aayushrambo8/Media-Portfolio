@@ -22,6 +22,7 @@ const galleryImages: GalleryImage[] = galleryData;
 
 /* ================= COMPONENT ================= */
 export function Gallery() {
+    const [mounted, setMounted] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [tapIndex, setTapIndex] = useState<number | null>(null);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -29,6 +30,10 @@ export function Gallery() {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     /* ================= KEYBOARD NAV ================= */
     useEffect(() => {
@@ -189,49 +194,57 @@ export function Gallery() {
             </div>
 
             {/* ================= GRID ================= */}
-            <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
-                <Masonry gutter="16px">
-                    {filteredImages.map((image, index) => (
-                        <motion.div
-                            key={image.url} // ✅ FIXED KEY
-                            whileHover={{ y: -10 }}
-                            transition={{ type: "spring", stiffness: 200 }}
-                            className="relative rounded-2xl overflow-hidden cursor-pointer group"
-                            onMouseEnter={() => setHoveredIndex(index)}
-                            onMouseLeave={() => setHoveredIndex(null)}
-                            onClick={() => setLightboxIndex(index)}
-                        >
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
-                            <ImageWithFallback
-                                src={image.url}
-                                alt={image.label}
-                                className="w-full"
-                                loading="lazy"
-                            />
+            {mounted ? (
+                <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
+                    <Masonry gutter="16px">
+                        {filteredImages.map((image, index) => (
+                            <motion.div
+                                key={image.url} // ✅ FIXED KEY
+                                whileHover={{ y: -10 }}
+                                transition={{ type: "spring", stiffness: 200 }}
+                                className="relative rounded-2xl overflow-hidden cursor-pointer group"
+                                onMouseEnter={() => setHoveredIndex(index)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                                onClick={() => setLightboxIndex(index)}
+                            >
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                                <ImageWithFallback
+                                    src={image.url}
+                                    alt={image.label}
+                                    className="w-full"
+                                    loading="lazy"
+                                />
 
-                            {isVisible(index) && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="absolute bottom-0 w-full p-4 pt-16 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/80 to-transparent flex flex-col justify-end"
-                                >
-                                    <p className="text-white font-serif text-lg md:text-xl mb-2 drop-shadow-md">{image.label}</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
-                                            <span 
-                                                key={i} 
-                                                className="text-[10px] md:text-xs font-medium px-2.5 py-1 bg-[#F59E0B]/20 border border-[#F59E0B]/30 text-[#FBBF24] rounded-full backdrop-blur-md"
-                                            >
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </motion.div>
+                                {isVisible(index) && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="absolute bottom-0 w-full p-4 pt-16 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/80 to-transparent flex flex-col justify-end"
+                                    >
+                                        <p className="text-white font-serif text-lg md:text-xl mb-2 drop-shadow-md">{image.label}</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
+                                                <span 
+                                                    key={i} 
+                                                    className="text-[10px] md:text-xs font-medium px-2.5 py-1 bg-[#F59E0B]/20 border border-[#F59E0B]/30 text-[#FBBF24] rounded-full backdrop-blur-md"
+                                                >
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        ))}
+                    </Masonry>
+                </ResponsiveMasonry>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-0">
+                    {galleryImages.slice(0, 6).map((img, i) => (
+                        <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse" />
                     ))}
-                </Masonry>
-            </ResponsiveMasonry>
+                </div>
+            )}
 
             {/* ================= LIGHTBOX ================= */}
             <AnimatePresence>
