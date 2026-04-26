@@ -8,6 +8,8 @@ import { cookies } from "next/headers";
 const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
 const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
 const ADMIN_FILE = path.join(process.cwd(), "src/data/admin.json");
+const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
+const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
 
 async function autoPruneTags() {
   const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
@@ -145,5 +147,47 @@ export async function deleteImage(url: string) {
     return { success: true, tags: latestTags };
   } catch (error) {
     return { success: false, error: "Failed to delete image" };
+  }
+}
+
+export async function updateTimeline(events: any[]) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    await fs.writeFile(TIMELINE_FILE, JSON.stringify(events, null, 2));
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to update timeline" };
+  }
+}
+
+export async function updateMilestones(milestones: any[]) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    await fs.writeFile(MILESTONES_FILE, JSON.stringify(milestones, null, 2));
+    revalidatePath("/about");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to update milestones" };
+  }
+}
+
+export async function reorderImages(newImages: any[]) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    await fs.writeFile(GALLERY_FILE, JSON.stringify(newImages, null, 2));
+    revalidatePath("/gallery");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to reorder images" };
   }
 }

@@ -3,7 +3,12 @@ import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { GraduationCap, Code, Database, Trophy, Instagram, Linkedin, Github, Send, Sparkles } from "lucide-react";
 
-export function About() {
+export type Milestone = {
+  title: string;
+  subtext: string;
+};
+
+export function About({ milestones }: { milestones: Milestone[] }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -36,28 +41,7 @@ export function About() {
     setFormData({ name: "", email: "", message: "" });
   };
 
-  const achievements = [
-    {
-      title: "Photographer for Raftaar, Chaar Diwari, and Darshan Rawal",
-      subtext: "Captured iconic performances for leading Indian artists",
-    },
-    {
-      title: "Covered Anwesha IIT Patna 2026",
-      subtext: "Premier Tech Festival - Official Photography",
-    },
-    {
-      title: "Covered Kaizen AIIMS Patna 2026",
-      subtext: "Medical College Fest - Complete Event Coverage",
-    },
-    {
-      title: "2+ Years of Professional Photography",
-      subtext: "Specialized in Live Concert and Event Photography",
-    },
-    {
-      title: "Dual Degree Achievement",
-      subtext: "BTech. Computer Science Engineering & BSc. Data Analytics",
-    },
-  ];
+
 
   const techStack = [
     { name: "C++", color: "#F59E0B" },
@@ -206,7 +190,7 @@ export function About() {
             />
 
             <div className="space-y-12 md:space-y-24">
-              {achievements.map((achievement, index) => {
+              {milestones.map((achievement, index) => {
                 const isEven = index % 2 === 0;
                 return (
                 <motion.div

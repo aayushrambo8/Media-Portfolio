@@ -46,6 +46,7 @@ export function Navbar() {
     >
       <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6 flex justify-center">
         <motion.div
+          layout
           animate={{
             backgroundColor: scrolled 
               ? "rgba(15, 20, 25, 0.95)" 
@@ -55,14 +56,13 @@ export function Navbar() {
               ? "0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.1)" 
               : "0 4px 24px rgba(0, 0, 0, 0.3)",
             padding: scrolled ? "0.5rem 1rem" : "1rem 2rem",
-            width: scrolled ? "auto" : "100%",
             borderRadius: scrolled ? "50px" : "20px",
           }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
-          className="backdrop-blur-2xl flex flex-col md:flex-row items-center justify-between border w-full transition-all"
-          style={{ maxWidth: scrolled ? "fit-content" : "1600px" }}
+          className="mx-auto backdrop-blur-2xl flex flex-col md:flex-row items-center justify-between border overflow-hidden"
+          style={{ width: scrolled ? "max-content" : "100%", maxWidth: "1600px" }}
         >
-          <div className="flex items-center justify-between w-full md:w-auto gap-4">
+          <div className="flex items-center justify-between w-full">
             {/* Logo */}
             <Link href="/">
               <motion.div
@@ -81,12 +81,14 @@ export function Navbar() {
                   <img className="w-full h-full object-contain p-1" src="https://ik.imagekit.io/aayushrambo8/logo.jpg" alt="Logo" />
                 </motion.div>
                 <motion.div
+                  layout
                   initial={false}
                   animate={{ 
-                    width: scrolled ? 0 : "auto", 
+                    maxWidth: scrolled ? 0 : 300, 
                     opacity: scrolled ? 0 : 1,
                     marginLeft: scrolled ? 0 : "0.75rem"
                   }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
                   className="overflow-hidden whitespace-nowrap"
                 >
                   <div className="text-lg font-bold tracking-[0.15em] text-[#F8FAFC]">
@@ -132,15 +134,17 @@ export function Navbar() {
               
               {/* CTA Button */}
               <motion.button
+                layout
                 onClick={handleContactClick}
                 initial={false}
                 animate={{ 
-                  width: scrolled ? 0 : "auto", 
+                  maxWidth: scrolled ? 0 : 200, 
                   opacity: scrolled ? 0 : 1,
                   paddingLeft: scrolled ? 0 : "1.5rem",
                   paddingRight: scrolled ? 0 : "1.5rem",
                   marginLeft: scrolled ? 0 : "1rem"
                 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
                 className="overflow-hidden bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] text-[#0A0E1A] rounded-[12px] font-semibold text-sm shadow-lg whitespace-nowrap py-3"
               >
                 Get in Touch
