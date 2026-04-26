@@ -144,38 +144,58 @@ export default function AdminDashboard({ initialTags, initialImages }: { initial
           </div>
 
           <form onSubmit={handleAddOrUpdateImage} className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-[#94A3B8]">Image URL</label>
-              <input 
-                type="url" 
-                placeholder="https://ik.imagekit.io/..." 
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
-              />
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-[#94A3B8]">Caption / Label</label>
-              <input 
-                type="text" 
-                placeholder="Live at..." 
-                value={label}
-                onChange={e => setLabel(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
-              />
-            </div>
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Left Side Inputs */}
+              <div className="flex-1 flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-[#94A3B8]">Image URL</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://ik.imagekit.io/..." 
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-[#94A3B8]">Caption / Label</label>
+                  <input 
+                    type="text" 
+                    placeholder="Live at..." 
+                    value={label}
+                    onChange={e => setLabel(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors"
+                  />
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm text-[#94A3B8]">Category</label>
-              <select 
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors appearance-none"
-              >
-                <option value="Artist" className="bg-[#1A1F2E]">Artist</option>
-                <option value="Event" className="bg-[#1A1F2E]">Event</option>
-              </select>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-[#94A3B8]">Category</label>
+                  <select 
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#F59E0B] transition-colors appearance-none"
+                  >
+                    <option value="Artist" className="bg-[#1A1F2E]">Artist</option>
+                    <option value="Event" className="bg-[#1A1F2E]">Event</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Right Side Image Preview */}
+              <div className="w-full md:w-[200px] lg:w-[250px] flex flex-col gap-2 flex-shrink-0">
+                <label className="text-sm text-[#94A3B8]">Image Preview</label>
+                <div className="w-full aspect-[3/4] bg-black/20 border border-white/10 rounded-xl overflow-hidden flex items-center justify-center">
+                  {url ? (
+                    <ImageWithFallback src={url} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center text-[#94A3B8] opacity-50">
+                      <ImageIcon className="w-8 h-8 mb-2" />
+                      <span className="text-xs">No image provided</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">

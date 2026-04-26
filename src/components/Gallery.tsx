@@ -179,9 +179,23 @@ export function Gallery() {
                             />
 
                             {isVisible(index) && (
-                                <div className="absolute bottom-0 w-full bg-black/60 p-3">
-                                    <p className="text-white text-sm">{image.label}</p>
-                                </div>
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="absolute bottom-0 w-full p-4 pt-16 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/80 to-transparent flex flex-col justify-end"
+                                >
+                                    <p className="text-white font-serif text-lg md:text-xl mb-2 drop-shadow-md">{image.label}</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
+                                            <span 
+                                                key={i} 
+                                                className="text-[10px] md:text-xs font-medium px-2.5 py-1 bg-[#F59E0B]/20 border border-[#F59E0B]/30 text-[#FBBF24] rounded-full backdrop-blur-md"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </motion.div>
                             )}
                         </motion.div>
                     ))}
