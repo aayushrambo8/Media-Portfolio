@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
 
 const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
 const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
@@ -36,13 +37,24 @@ async function autoPruneTags() {
   return currentTags;
 }
 
+
 export async function login(username: string, password: string) {
   const envUser = process.env.ADMIN_USERNAME || "admin";
-  const envPass = process.env.ADMIN_PASSWORD || "admin123";
+  const envPassHash = process.env.ADMIN_PASSWORD || "$2a$10$YourDefaultHashHere"; // Provide a way to generate this
 
-  if (username === envUser && password === envPass) {
-    (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
-    return { success: true };
+  // If the env var is not a hash (too short), fallback to plaintext for safety during transition
+  // but ideally it should always be a hash.
+  const isHash = envPassHash.startsWith("$2a$");
+
+  if (username === envUser) {
+    const isValid = isHash 
+      ? await bcrypt.compare(password, envPassHash)
+      : password === envPassHash;
+      
+    if (isValid) {
+      (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
+      return { success: true };
+    }
   }
   return { success: false, error: "Invalid username or password" };
 }
