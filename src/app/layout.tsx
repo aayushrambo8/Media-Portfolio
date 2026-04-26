@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import { Navbar } from "../components/Navbar";
-import { CustomCursor } from "../components/ui/CustomCursor";
+import { Navbar } from "@/components/Navbar";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 import "../styles/index.css";
 
 export const metadata: Metadata = {
