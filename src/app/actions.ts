@@ -52,6 +52,11 @@ export async function login(username: string, password: string) {
   }
 }
 
+export async function logout() {
+  (await cookies()).delete("admin_session");
+  return { success: true };
+}
+
 export async function updateCredentials(oldUser: string, oldPass: string, newUser: string, newPass: string) {
   try {
     const data = await fs.readFile(ADMIN_FILE, "utf-8");
