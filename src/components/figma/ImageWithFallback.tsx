@@ -10,7 +10,15 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
     setDidError(true)
   }
 
-  const { src, alt, style, className, ...rest } = props
+  let { src, alt, style, className, ...rest } = props
+
+  // Apply ImageKit transformations for watermarking and security if it's an ImageKit URL
+  if (src && src.includes('ik.imagekit.io')) {
+    const separator = src.includes('?') ? '&' : '?';
+    // ot: Text, ots: Size, otc: Color, oa: Alignment, ota: Alpha (transparency)
+    // q: Quality (slightly lower for web display to protect originals)
+    src = `${src}${separator}tr=ot-Aayush%20Babu,ots-40,otc-FFFFFF,oa-center,ota-0.15,q-80`;
+  }
 
   return didError ? (
     <div
