@@ -13,7 +13,7 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
   let { src, alt, style, className, ...rest } = props
 
   // Apply ImageKit transformations for watermarking and security if it's an ImageKit URL
-  if (src && src.includes('ik.imagekit.io')) {
+  if (typeof src === 'string' && src.includes('ik.imagekit.io')) {
     const separator = src.includes('?') ? '&' : '?';
     // ot: Text, ots: Size, otc: Color, oa: Alignment, ota: Alpha (transparency)
     // q: Quality (slightly lower for web display to protect originals)
