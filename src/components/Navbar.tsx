@@ -46,7 +46,6 @@ export function Navbar() {
     >
       <div className="px-4 md:px-6 lg:px-12 py-4 md:py-6 flex justify-center">
         <motion.div
-          layout
           animate={{
             backgroundColor: scrolled 
               ? "rgba(15, 20, 25, 0.95)" 
@@ -104,7 +103,9 @@ export function Navbar() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
               {navLinks.map((link, index) => {
-                const isActive = pathname === link.path;
+                // Check if active: exact match for home, startsWith for others to handle sub-pages
+                const isActive = pathname === link.path || (link.path !== '/' && pathname.startsWith(link.path));
+                
                 return (
                   <Link key={index} href={link.path}>
                     <motion.div
@@ -124,7 +125,12 @@ export function Navbar() {
                         <motion.div
                           layoutId="navbar-indicator"
                           className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] rounded-full"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          transition={{ 
+                            type: "spring", 
+                            stiffness: 350, 
+                            damping: 30,
+                            layout: { duration: 0.3 } // Explicitly control layout transition speed
+                          }}
                         />
                       )}
                     </motion.div>
