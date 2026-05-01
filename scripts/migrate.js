@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, setDoc, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
@@ -23,19 +23,31 @@ if (!firebaseConfig.apiKey) {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+async function clearCollection(collectionName) {
+  const q = collection(db, collectionName);
+  const snapshot = await getDocs(q);
+  const batch = writeBatch(db);
+  snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+}
+
 async function migrate() {
-  console.log("Starting migration...");
+  console.log("🚀 Starting Clean-Slate Migration...");
 
   try {
-    // 1. Migrate Tags
+    // 1. Clear existing Gallery
+    console.log("🧹 Clearing existing gallery data...");
+    await clearCollection("gallery");
+
+    // 2. Migrate Tags
     const tagsPath = path.join(process.cwd(), "src/data/tags.json");
     if (fs.existsSync(tagsPath)) {
       const tags = JSON.parse(fs.readFileSync(tagsPath, "utf-8"));
       await setDoc(doc(db, "config", "tags"), { list: tags });
-      console.log("✅ Tags migrated.");
+      console.log("✅ Tags synced.");
     }
 
-    // 2. Migrate Gallery
+    // 3. Migrate Gallery
     const galleryPath = path.join(process.cwd(), "src/data/gallery.json");
     if (fs.existsSync(galleryPath)) {
       const gallery = JSON.parse(fs.readFileSync(galleryPath, "utf-8"));
@@ -45,26 +57,26 @@ async function migrate() {
           order: i
         });
       }
-      console.log(`✅ Gallery migrated (${gallery.length} images).`);
+      console.log(`✅ Gallery synced (${gallery.length} images).`);
     }
 
-    // 3. Migrate Timeline
+    // 4. Migrate Timeline
     const timelinePath = path.join(process.cwd(), "src/data/timeline.json");
     if (fs.existsSync(timelinePath)) {
       const timeline = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
       await setDoc(doc(db, "config", "timeline"), { events: timeline });
-      console.log("✅ Timeline migrated.");
+      console.log("✅ Timeline synced.");
     }
 
-    // 4. Migrate Milestones
+    // 5. Migrate Milestones
     const milestonesPath = path.join(process.cwd(), "src/data/milestones.json");
     if (fs.existsSync(milestonesPath)) {
       const milestones = JSON.parse(fs.readFileSync(milestonesPath, "utf-8"));
       await setDoc(doc(db, "config", "milestones"), { list: milestones });
-      console.log("✅ Milestones migrated.");
+      console.log("✅ Milestones synced.");
     }
 
-    console.log("\n🚀 Migration completed successfully!");
+    console.log("\n✨ Database is now perfectly consistent with your JSON files!");
     process.exit(0);
   } catch (error) {
     console.error("Migration failed:", error);

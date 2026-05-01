@@ -1,28 +1,21 @@
 import { Gallery } from "../../components/Gallery";
-import { db } from "@/lib/firebase";
-export const dynamic = "force-dynamic";
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  query, 
-  orderBy 
-} from "firebase/firestore";
+import fs from "fs/promises";
+import path from "path";
 
 export default async function Page() {
+  const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
+  const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
   let tags: string[] = [];
   let images: any[] = [];
   
   try {
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    if (tagsDoc.exists()) tags = tagsDoc.data().list;
+    const tagsData = await fs.readFile(TAGS_FILE, "utf-8");
+    tags = JSON.parse(tagsData);
     
-    const galleryQuery = query(collection(db, "gallery"), orderBy("order", "asc"));
-    const gallerySnapshot = await getDocs(galleryQuery);
-    images = gallerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
+    images = JSON.parse(galleryData);
   } catch(e) {
-    console.error("Could not fetch gallery data", e);
+    console.error("Could not read gallery data files", e);
   }
 
   return <Gallery initialImages={images} initialTags={tags} />;

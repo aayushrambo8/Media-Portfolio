@@ -1,16 +1,9 @@
 import { cookies } from "next/headers";
+import fs from "fs/promises";
+import path from "path";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
-import { db } from "@/lib/firebase";
-export const dynamic = "force-dynamic";
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  query, 
-  orderBy 
-} from "firebase/firestore";
 
 export default async function AdminPage() {
   const session = (await cookies()).get("admin_session");
@@ -18,31 +11,30 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
+  const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
+  const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
+  const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
+  const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
+  
   let tags: string[] = [];
   let images: any[] = [];
   let timeline: any[] = [];
   let milestones: any[] = [];
   
   try {
-    // Fetch Tags
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    if (tagsDoc.exists()) tags = tagsDoc.data().list;
+    const tagsData = await fs.readFile(TAGS_FILE, "utf-8");
+    tags = JSON.parse(tagsData) as string[];
     
-    // Fetch Gallery (Ordered)
-    const galleryQuery = query(collection(db, "gallery"), orderBy("order", "asc"));
-    const gallerySnapshot = await getDocs(galleryQuery);
-    images = gallerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
+    images = JSON.parse(galleryData);
 
-    // Fetch Timeline
-    const timelineDoc = await getDoc(doc(db, "config", "timeline"));
-    if (timelineDoc.exists()) timeline = timelineDoc.data().events;
+    const timelineData = await fs.readFile(TIMELINE_FILE, "utf-8");
+    timeline = JSON.parse(timelineData);
 
-    // Fetch Milestones
-    const milestonesDoc = await getDoc(doc(db, "config", "milestones"));
-    if (milestonesDoc.exists()) milestones = milestonesDoc.data().list;
-
+    const milestonesData = await fs.readFile(MILESTONES_FILE, "utf-8");
+    milestones = JSON.parse(milestonesData);
   } catch(e) {
-    console.error("Could not fetch data from Firestore", e);
+    console.error("Could not read data files", e);
   }
 
   return (
