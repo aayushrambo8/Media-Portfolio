@@ -1,6 +1,12 @@
 [
   {
     "url": "https://example.com/img.jpg",
+    "label": "Test",
+    "category": "Artist",
+    "tags": "TestTag"
+  },
+  {
+    "url": "https://example.com/img.jpg",
     "label": "Test Image",
     "category": "Artist",
     "tags": "MyCustomTag"
