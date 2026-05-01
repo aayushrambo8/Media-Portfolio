@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import fs from "fs/promises";
 import path from "path";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
 
