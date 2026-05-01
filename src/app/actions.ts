@@ -1,40 +1,32 @@
 "use server";
 
-import fs from "fs/promises";
-import path from "path";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { db } from "@/lib/firebase";
+import { 
+  collection, 
+  getDocs, 
+  setDoc, 
+  doc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  writeBatch,
+  getDoc,
+  addDoc
+} from "firebase/firestore";
 
-const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
-const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
-const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
-const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
-
-async function readJson(file: string) {
-  try {
-    const data = await fs.readFile(file, "utf-8");
-    if (!data.trim()) return [];
-    return JSON.parse(data);
-  } catch (error) {
-    console.error(`Error reading ${file}:`, error);
-    return [];
-  }
-}
-
-async function writeJson(file: string, data: any) {
-  try {
-    await fs.writeFile(file, JSON.stringify(data, null, 2));
-    return true;
-  } catch (error) {
-    console.error(`Error writing ${file}:`, error);
-    return false;
-  }
+// Helper for reordering and fetching
+async function getOrderedGallery() {
+  const q = query(collection(db, "gallery"), orderBy("order", "asc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 async function autoPruneTags() {
   try {
-    const images = await readJson(GALLERY_FILE);
+    const images = await getOrderedGallery();
     const activeTags = new Set<string>();
     
     images.forEach((img: any) => {
@@ -46,11 +38,12 @@ async function autoPruneTags() {
       }
     });
 
-    const currentTags = await readJson(TAGS_FILE) as string[];
+    const tagsDoc = await getDoc(doc(db, "config", "tags"));
+    const currentTags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
     const newTags = currentTags.filter(tag => activeTags.has(tag));
 
     if (newTags.length !== currentTags.length) {
-      await writeJson(TAGS_FILE, newTags.sort());
+      await setDoc(doc(db, "config", "tags"), { list: newTags.sort() });
       return newTags.sort();
     }
     return currentTags;
@@ -96,20 +89,24 @@ export async function addTag(tag: string) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const tags = await readJson(TAGS_FILE) as string[];
-  const formattedTag = tag.trim();
-  
-  if (formattedTag && !tags.includes(formattedTag)) {
-    tags.push(formattedTag);
-    tags.sort();
-    const success = await writeJson(TAGS_FILE, tags);
-    if (success) {
+  try {
+    const tagsDoc = await getDoc(doc(db, "config", "tags"));
+    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
+    const formattedTag = tag.trim();
+    
+    if (formattedTag && !tags.includes(formattedTag)) {
+      tags.push(formattedTag);
+      tags.sort();
+      await setDoc(doc(db, "config", "tags"), { list: tags });
       revalidatePath("/admin");
       revalidatePath("/gallery");
       return { success: true };
     }
+    return { success: false, error: "Tag already exists or is empty" };
+  } catch (error) {
+    console.error("Error in addTag:", error);
+    return { success: false, error: "Failed to add tag" };
   }
-  return { success: false, error: "Failed to add tag" };
 }
 
 export async function addTags(newTags: string[]) {
@@ -117,7 +114,8 @@ export async function addTags(newTags: string[]) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const tags = await readJson(TAGS_FILE) as string[];
+    const tagsDoc = await getDoc(doc(db, "config", "tags"));
+    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
     let changed = false;
 
     newTags.forEach(tag => {
@@ -130,7 +128,7 @@ export async function addTags(newTags: string[]) {
 
     if (changed) {
       tags.sort();
-      await writeJson(TAGS_FILE, tags);
+      await setDoc(doc(db, "config", "tags"), { list: tags });
       revalidatePath("/admin");
       revalidatePath("/gallery");
     }
@@ -146,27 +144,35 @@ export async function updateTag(oldName: string, newName: string) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const tags = await readJson(TAGS_FILE) as string[];
+    // Update tags list
+    const tagsDoc = await getDoc(doc(db, "config", "tags"));
+    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
     const index = tags.indexOf(oldName);
     if (index !== -1) {
       tags[index] = newName.trim();
-      await writeJson(TAGS_FILE, tags.sort());
+      await setDoc(doc(db, "config", "tags"), { list: tags.sort() });
     }
 
-    const images = await readJson(GALLERY_FILE);
-    const updatedImages = images.map((img: any) => {
+    // Update tags in gallery documents
+    const q = query(collection(db, "gallery"));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    let count = 0;
+
+    snapshot.docs.forEach(d => {
+      const img = d.data();
       if (img.tags) {
         const tagList = img.tags.split(",").map((t: string) => t.trim());
         const tagIndex = tagList.indexOf(oldName);
         if (tagIndex !== -1) {
           tagList[tagIndex] = newName.trim();
-          return { ...img, tags: tagList.join(", ") };
+          batch.update(d.ref, { tags: tagList.join(", ") });
+          count++;
         }
       }
-      return img;
     });
 
-    await writeJson(GALLERY_FILE, updatedImages);
+    if (count > 0) await batch.commit();
     
     revalidatePath("/admin");
     revalidatePath("/gallery");
@@ -181,91 +187,118 @@ export async function addImage(image: { url: string; label: string; category: st
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const images = await readJson(GALLERY_FILE);
-  images.unshift(image);
+  try {
+    const q = query(collection(db, "gallery"), orderBy("order", "asc"));
+    const snapshot = await getDocs(q);
+    const minOrder = snapshot.empty ? 0 : snapshot.docs[0].data().order - 1;
 
-  const success = await writeJson(GALLERY_FILE, images);
-  if (success) {
+    await addDoc(collection(db, "gallery"), {
+      ...image,
+      order: minOrder
+    });
+
     revalidatePath("/admin");
     revalidatePath("/gallery");
     return { success: true };
+  } catch (error) {
+    console.error("Error in addImage:", error);
+    return { success: false, error: "Failed to add image" };
   }
-  return { success: false, error: "Failed to add image" };
 }
 
 export async function updateImage(originalUrl: string, updatedImage: { url: string; label: string; category: string; tags: string }) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const images = await readJson(GALLERY_FILE);
-  const index = images.findIndex((img: any) => img.url === originalUrl);
-  
-  if (index !== -1) {
-    images[index] = updatedImage;
-    const writeSuccess = await writeJson(GALLERY_FILE, images);
-    if (writeSuccess) {
+  try {
+    const q = query(collection(db, "gallery"));
+    const snapshot = await getDocs(q);
+    const docToUpdate = snapshot.docs.find(d => d.data().url === originalUrl);
+    
+    if (docToUpdate) {
+      await setDoc(docToUpdate.ref, { ...updatedImage }, { merge: true });
       const latestTags = await autoPruneTags();
       revalidatePath("/admin");
       revalidatePath("/gallery");
       return { success: true, tags: latestTags };
     }
-    return { success: false, error: "Failed to write gallery data" };
+    return { success: false, error: "Original image not found" };
+  } catch (error) {
+    console.error("Error in updateImage:", error);
+    return { success: false, error: "Failed to update image" };
   }
-  return { success: false, error: "Original image not found" };
 }
 
 export async function deleteImage(url: string) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  let images = await readJson(GALLERY_FILE);
-  images = images.filter((img: any) => img.url !== url);
-  
-  const success = await writeJson(GALLERY_FILE, images);
-  if (success) {
-    const latestTags = await autoPruneTags();
-    revalidatePath("/admin");
-    revalidatePath("/gallery");
-    return { success: true, tags: latestTags };
+  try {
+    const q = query(collection(db, "gallery"));
+    const snapshot = await getDocs(q);
+    const docToDelete = snapshot.docs.find(d => d.data().url === url);
+
+    if (docToDelete) {
+      await deleteDoc(docToDelete.ref);
+      const latestTags = await autoPruneTags();
+      revalidatePath("/admin");
+      revalidatePath("/gallery");
+      return { success: true, tags: latestTags };
+    }
+    return { success: false, error: "Image not found" };
+  } catch (error) {
+    console.error("Error in deleteImage:", error);
+    return { success: false, error: "Failed to delete image" };
   }
-  return { success: false, error: "Failed to delete image" };
 }
 
 export async function updateTimeline(events: any[]) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const success = await writeJson(TIMELINE_FILE, events);
-  if (success) {
+  try {
+    await setDoc(doc(db, "config", "timeline"), { events });
     revalidatePath("/");
     revalidatePath("/admin");
     return { success: true };
+  } catch (error) {
+    console.error("Error in updateTimeline:", error);
+    return { success: false, error: "Failed to update timeline" };
   }
-  return { success: false, error: "Failed to update timeline" };
 }
 
 export async function updateMilestones(milestones: any[]) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const success = await writeJson(MILESTONES_FILE, milestones);
-  if (success) {
+  try {
+    await setDoc(doc(db, "config", "milestones"), { list: milestones });
     revalidatePath("/about");
     revalidatePath("/admin");
     return { success: true };
+  } catch (error) {
+    console.error("Error in updateMilestones:", error);
+    return { success: false, error: "Failed to update milestones" };
   }
-  return { success: false, error: "Failed to update milestones" };
 }
 
 export async function reorderImages(newImages: any[]) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
 
-  const success = await writeJson(GALLERY_FILE, newImages);
-  if (success) {
+  try {
+    const batch = writeBatch(db);
+    newImages.forEach((img, idx) => {
+      if (img.id) {
+        batch.update(doc(db, "gallery", img.id), { order: idx });
+      }
+    });
+    await batch.commit();
     revalidatePath("/gallery");
     revalidatePath("/admin");
     return { success: true };
+  } catch (error) {
+    console.error("Error in reorderImages:", error);
+    return { success: false, error: "Failed to reorder images" };
   }
-  return { success: false, error: "Failed to reorder images" };
 }
