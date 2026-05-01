@@ -186,21 +186,14 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
             {/* ================= GRID ================= */}
             {mounted ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-[300px]">
+                <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
                     {filteredImages.map((image, index) => {
-                        // Bento logic: larger tiles for certain indices
-                        const isLarge = index % 7 === 0 || index % 10 === 0;
-                        const isWide = index % 5 === 0;
-                        
                         return (
                             <motion.div
                                 key={image.url}
                                 whileHover={{ scale: 1.02 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                className={`relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl ${
-                                    isLarge ? "md:col-span-2 md:row-span-2" : 
-                                    isWide ? "md:col-span-2" : ""
-                                }`}
+                                className="relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl break-inside-avoid mb-4"
                                 onMouseEnter={() => setHoveredIndex(index)}
                                 onMouseLeave={() => setHoveredIndex(null)}
                                 onClick={() => setLightboxIndex(index)}
@@ -209,7 +202,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                 <ImageWithFallback
                                     src={image.url}
                                     alt={image.label}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    className="w-full h-auto block transition-transform duration-700 group-hover:scale-105"
                                 />
 
                                 {isVisible(index) && (
@@ -237,9 +230,9 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 </div>
             ) : (
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-0">
+                <div className="columns-1 md:columns-2 lg:columns-3 gap-4 opacity-0">
                     {galleryImages.slice(0, 6).map((img, i) => (
-                        <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse" />
+                        <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse break-inside-avoid mb-4" />
                     ))}
                 </div>
             )}
