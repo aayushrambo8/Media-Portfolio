@@ -21,7 +21,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans">
+      <body className="font-sans" suppressHydrationWarning>
         <CustomCursor />
         <div className="grain-overlay" aria-hidden="true" />
         <div className="min-h-screen bg-[#0A0E1A] text-[#F8FAFC]">
