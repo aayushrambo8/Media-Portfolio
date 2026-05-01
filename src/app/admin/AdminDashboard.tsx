@@ -59,6 +59,20 @@ export default function AdminDashboard({
   const [customTags, setCustomTags] = useState("");
   const [editingUrl, setEditingUrl] = useState<string | null>(null);
 
+  // Filter State
+  const [filterText, setFilterText] = useState("");
+  const [filterTag, setFilterTag] = useState("All");
+  const [filterCategory, setFilterCategory] = useState("All");
+
+  const isFiltering = filterText !== "" || filterTag !== "All" || filterCategory !== "All";
+
+  const filteredImages = images.filter(img => {
+    if (filterCategory !== "All" && img.category !== filterCategory) return false;
+    if (filterTag !== "All" && !img.tags.split(",").map(t => t.trim()).includes(filterTag)) return false;
+    if (filterText && !img.label.toLowerCase().includes(filterText.toLowerCase())) return false;
+    return true;
+  });
+
   // Timeline State
   const [timeline, setTimeline] = useState(initialTimeline);
   const [milestones, setMilestones] = useState(initialMilestones);
@@ -435,11 +449,42 @@ export default function AdminDashboard({
 
           {/* LIST */}
           <div className="bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-serif text-white">Manage Gallery Order</h2>
-              <p className="text-sm text-[#94A3B8] italic flex items-center gap-2">
-                <GripVertical className="w-4 h-4" /> Drag images to reorder
-              </p>
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-8 gap-4">
+              <div>
+                <h2 className="text-2xl font-serif text-white">Manage Gallery Order</h2>
+                <p className="text-sm text-[#94A3B8] italic flex items-center gap-2">
+                  <GripVertical className="w-4 h-4" /> Drag to reorder {isFiltering && <span className="text-red-400 font-medium">(Disabled while filtering)</span>}
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={filterText} 
+                  onChange={e => setFilterText(e.target.value)} 
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-[#F59E0B]" 
+                />
+                <select 
+                  value={filterCategory} 
+                  onChange={e => setFilterCategory(e.target.value)} 
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-[#F59E0B]"
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Artist">Artist</option>
+                  <option value="Event">Event</option>
+                </select>
+                <select 
+                  value={filterTag} 
+                  onChange={e => setFilterTag(e.target.value)} 
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-[#F59E0B] max-w-[200px]"
+                >
+                  <option value="All">All Tags</option>
+                  {availableTags.map(tag => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             
             <Reorder.Group 
@@ -448,11 +493,14 @@ export default function AdminDashboard({
               onReorder={handleReorder}
               className="space-y-4"
             >
-              {images.map((img, idx) => (
+              {filteredImages.map((img, _idx) => {
+                const originalIdx = images.findIndex(i => i.url === img.url);
+                return (
                 <Reorder.Item 
                   key={img.url} 
                   value={img}
-                  className="bg-black/20 rounded-2xl overflow-hidden border border-white/10 group flex items-center p-4 gap-6 cursor-grab active:cursor-grabbing transition-colors hover:bg-white/5"
+                  dragListener={!isFiltering}
+                  className={`bg-black/20 rounded-2xl overflow-hidden border border-white/10 group flex items-center p-4 gap-6 transition-colors hover:bg-white/5 ${!isFiltering ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 >
                   <div className="flex-shrink-0 flex items-center gap-4">
                     <GripVertical className="w-5 h-5 text-white/20 group-hover:text-white/40" />
@@ -475,14 +523,14 @@ export default function AdminDashboard({
 
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-1 mr-4 border-r border-white/10 pr-4">
-                      <button onClick={(e) => { e.stopPropagation(); moveImage(idx, 'up'); }} disabled={idx === 0} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); moveImage(idx, 'down'); }} disabled={idx === images.length - 1} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); moveImage(originalIdx, 'up'); }} disabled={isFiltering || originalIdx === 0} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); moveImage(originalIdx, 'down'); }} disabled={isFiltering || originalIdx === images.length - 1} className="p-1.5 text-[#94A3B8] hover:text-white disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); handleEditClick(img); }} className="p-3 text-[#94A3B8] hover:text-white bg-white/5 rounded-xl"><Edit2 className="w-5 h-5" /></button>
                     <button onClick={(e) => { e.stopPropagation(); handleDeleteImage(img.url); }} className="p-3 text-red-400 hover:text-red-300 bg-red-500/10 rounded-xl"><Trash2 className="w-5 h-5" /></button>
                   </div>
                 </Reorder.Item>
-              ))}
+              )})}
             </Reorder.Group>
           </div>
         </div>
