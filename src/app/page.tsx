@@ -1,6 +1,6 @@
 import { Home } from "../components/Home";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import fs from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -8,12 +8,10 @@ export default async function Page() {
   let timelineEvents = [];
   
   try {
-    const timelineDoc = await getDoc(doc(db, "portfolio_data", "timeline"));
-    if (timelineDoc.exists()) {
-      timelineEvents = timelineDoc.data().items || [];
-    }
+    const timelineData = await fs.readFile(path.join(process.cwd(), "src/data/timeline.json"), "utf-8");
+    timelineEvents = JSON.parse(timelineData);
   } catch (e) {
-    console.error("Failed to load timeline data from Firestore", e);
+    console.error("Failed to load timeline data from JSON", e);
   }
 
   return <Home timelineEvents={timelineEvents} />;
