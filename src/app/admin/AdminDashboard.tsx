@@ -176,7 +176,7 @@ export default function AdminDashboard({
 
     if (res.success) {
       setMessage(editingUrl ? "Image updated successfully!" : "Image added successfully!");
-      if (res.tags) setAvailableTags(res.tags);
+      if ("tags" in res && res.tags) setAvailableTags(res.tags as string[]);
       // Update local images list (simpler than fetching again)
       if (editingUrl) {
         setImages(prev => prev.map(img => img.url === editingUrl ? newImageData : img));
@@ -197,7 +197,7 @@ export default function AdminDashboard({
     if (res.success) {
       setMessage("Image deleted!");
       setImages(prev => prev.filter(img => img.url !== imgUrl));
-      if (res.tags) setAvailableTags(res.tags);
+      if ("tags" in res && res.tags) setAvailableTags(res.tags as string[]);
     }
     setLoading(false);
   };
