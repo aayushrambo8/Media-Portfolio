@@ -1,6 +1,6 @@
 import { Gallery } from "../../components/Gallery";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import fs from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -9,18 +9,14 @@ export default async function Page() {
   let images: any[] = [];
 
   try {
-    const tagsDoc = await getDoc(doc(db, "portfolio_data", "tags"));
-    if (tagsDoc.exists()) {
-      tags = tagsDoc.data().items || [];
-    }
+    const dataDir = path.join(process.cwd(), "src/data");
+    const tagsData = await fs.readFile(path.join(dataDir, "tags.json"), "utf-8");
+    tags = JSON.parse(tagsData);
 
-    const galleryDoc = await getDoc(doc(db, "portfolio_data", "gallery"));
-    if (galleryDoc.exists()) {
-      images = galleryDoc.data().items || [];
-    }
-
+    const galleryData = await fs.readFile(path.join(dataDir, "gallery.json"), "utf-8");
+    images = JSON.parse(galleryData);
   } catch (e) {
-    console.error("Could not fetch gallery data from Firestore", e);
+    console.error("Could not fetch gallery data from JSON", e);
   }
 
   return <Gallery initialImages={images} initialTags={tags} />;
