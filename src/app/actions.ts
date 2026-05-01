@@ -183,17 +183,19 @@ export async function addImage(image: { url: string; label: string; category: st
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
+    console.log("Adding image to", GALLERY_FILE);
     const images = await readJson(GALLERY_FILE);
     // Add to the beginning
     const newImages = [image, ...images];
     await writeJson(GALLERY_FILE, newImages);
 
+    console.log("Successfully wrote to", GALLERY_FILE);
     revalidatePath("/admin");
     revalidatePath("/gallery");
     return { success: true };
   } catch (error) {
     console.error("Error in addImage:", error);
-    return { success: false, error: "Failed to add image" };
+    return { success: false, error: "Failed to add image: " + (error as Error).message };
   }
 }
 
