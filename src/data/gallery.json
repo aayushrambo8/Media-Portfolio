@@ -1,5 +1,11 @@
 [
   {
+    "url": "https://example.com/img.jpg",
+    "label": "Test Image",
+    "category": "Artist",
+    "tags": "MyCustomTag"
+  },
+  {
     "url": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_0063.jpg?updatedAt=1775401259702",
     "label": "Live at Anwesha'26",
     "category": "Artist",

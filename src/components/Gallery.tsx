@@ -1,8 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo, useEffect } from "react";
-import { ResponsiveMasonry } from "react-responsive-masonry";
-import Masonry from "react-responsive-masonry";
+
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2 } from "lucide-react";
 /* ================= TYPES ================= */
@@ -187,14 +186,21 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
             {/* ================= GRID ================= */}
             {mounted ? (
-                <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
-                    <Masonry gutter="16px">
-                        {filteredImages.map((image, index) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-[300px]">
+                    {filteredImages.map((image, index) => {
+                        // Bento logic: larger tiles for certain indices
+                        const isLarge = index % 7 === 0 || index % 10 === 0;
+                        const isWide = index % 5 === 0;
+                        
+                        return (
                             <motion.div
-                                key={image.url} // ✅ FIXED KEY
-                                whileHover={{ y: -10 }}
-                                transition={{ type: "spring", stiffness: 200 }}
-                                className="relative rounded-2xl overflow-hidden cursor-pointer group"
+                                key={image.url}
+                                whileHover={{ scale: 1.02 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                className={`relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl ${
+                                    isLarge ? "md:col-span-2 md:row-span-2" : 
+                                    isWide ? "md:col-span-2" : ""
+                                }`}
                                 onMouseEnter={() => setHoveredIndex(index)}
                                 onMouseLeave={() => setHoveredIndex(null)}
                                 onClick={() => setLightboxIndex(index)}
@@ -203,22 +209,21 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                 <ImageWithFallback
                                     src={image.url}
                                     alt={image.label}
-                                    className="w-full"
-                                    loading="lazy"
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                 />
 
                                 {isVisible(index) && (
                                     <motion.div 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="absolute bottom-0 w-full p-4 pt-16 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/80 to-transparent flex flex-col justify-end"
+                                        className="absolute bottom-0 w-full p-6 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col justify-end z-20"
                                     >
-                                        <p className="text-white font-serif text-lg md:text-xl mb-2 drop-shadow-md">{image.label}</p>
-                                        <div className="flex flex-wrap gap-1.5">
+                                        <p className="text-white font-serif text-xl md:text-2xl mb-2 drop-shadow-lg">{image.label}</p>
+                                        <div className="flex flex-wrap gap-2">
                                             {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
                                                 <span 
                                                     key={i} 
-                                                    className="text-[10px] md:text-xs font-medium px-2.5 py-1 bg-[#F59E0B]/20 border border-[#F59E0B]/30 text-[#FBBF24] rounded-full backdrop-blur-md"
+                                                    className="text-[10px] md:text-xs font-semibold px-3 py-1 bg-[#F59E0B]/30 border border-[#F59E0B]/40 text-[#FBBF24] rounded-full backdrop-blur-md"
                                                 >
                                                     {tag}
                                                 </span>
@@ -227,10 +232,11 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                     </motion.div>
                                 )}
                             </motion.div>
-                        ))}
-                    </Masonry>
-                </ResponsiveMasonry>
+                        );
+                    })}
+                </div>
             ) : (
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-0">
                     {galleryImages.slice(0, 6).map((img, i) => (
                         <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse" />
