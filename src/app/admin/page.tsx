@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
 import { db } from "@/lib/firebase";
+export const dynamic = "force-dynamic";
 import { 
   collection, 
   getDocs, 

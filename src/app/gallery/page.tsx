@@ -1,5 +1,6 @@
 import { Gallery } from "../../components/Gallery";
 import { db } from "@/lib/firebase";
+export const dynamic = "force-dynamic";
 import { 
   collection, 
   getDocs, 
