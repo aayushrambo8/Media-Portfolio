@@ -141,6 +141,42 @@ export async function addTags(newTags: string[]) {
   }
 }
 
+export async function updateTag(oldName: string, newName: string) {
+  const session = (await cookies()).get("admin_session");
+  if (!session) return { success: false, error: "Unauthorized" };
+
+  try {
+    const tags = await readJson(TAGS_FILE) as string[];
+    const index = tags.indexOf(oldName);
+    if (index !== -1) {
+      tags[index] = newName.trim();
+      await writeJson(TAGS_FILE, tags.sort());
+    }
+
+    const images = await readJson(GALLERY_FILE);
+    const updatedImages = images.map((img: any) => {
+      if (img.tags) {
+        const tagList = img.tags.split(",").map((t: string) => t.trim());
+        const tagIndex = tagList.indexOf(oldName);
+        if (tagIndex !== -1) {
+          tagList[tagIndex] = newName.trim();
+          return { ...img, tags: tagList.join(", ") };
+        }
+      }
+      return img;
+    });
+
+    await writeJson(GALLERY_FILE, updatedImages);
+    
+    revalidatePath("/admin");
+    revalidatePath("/gallery");
+    return { success: true };
+  } catch (error) {
+    console.error("Error in updateTag:", error);
+    return { success: false, error: "Failed to update tag" };
+  }
+}
+
 export async function addImage(image: { url: string; label: string; category: string; tags: string }) {
   const session = (await cookies()).get("admin_session");
   if (!session) return { success: false, error: "Unauthorized" };
