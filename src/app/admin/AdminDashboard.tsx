@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   addImage, addTag, addTags, updateImage, deleteImage,
-  updateTimeline, updateMilestones, reorderImages,
+  updateTag, updateTimeline, updateMilestones, reorderImages,
   logout, updateCredentials
 } from "../actions";
 import {
@@ -129,6 +129,22 @@ export default function AdminDashboard({
     setCategory("Artist");
     setSelectedTags([]);
     setCustomTags("");
+  };
+
+  const handleRenameTag = async (oldName: string) => {
+    const newName = prompt("Rename tag:", oldName);
+    if (!newName || newName === oldName) return;
+    
+    setLoading(true);
+    const res = await updateTag(oldName, newName);
+    if (res.success) {
+      setAvailableTags(prev => prev.map(t => t === oldName ? newName : t).sort());
+      setSelectedTags(prev => prev.map(t => t === oldName ? newName : t));
+      setMessage("Tag renamed successfully!");
+    } else {
+      alert(res.error);
+    }
+    setLoading(false);
   };
 
   const handleAddOrUpdateImage = async (e: React.FormEvent) => {
@@ -344,54 +360,77 @@ export default function AdminDashboard({
 
       {activeTab === "gallery" ? (
         <div className="space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="w-full">
             {/* FORM */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="md:col-span-2 bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 md:p-8 shadow-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-serif text-white">{editingUrl ? 'Edit Image' : 'Add New Image'}</h2>
                 {editingUrl && <button onClick={cancelEdit} className="text-sm text-[#F59E0B]">Cancel</button>}
               </div>
-              <form onSubmit={handleAddOrUpdateImage} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <input type="url" placeholder="Image URL" value={url} onChange={e => setUrl(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
-                    <input type="text" placeholder="Caption" value={label} onChange={e => setLabel(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
-                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]">
-                      <option value="Artist">Artist</option>
-                      <option value="Event">Event</option>
-                    </select>
+              <form onSubmit={handleAddOrUpdateImage} className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                  {/* INPUTS */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider ml-1">Image Information</label>
+                        <input type="url" placeholder="Image URL" value={url} onChange={e => setUrl(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
+                        <input type="text" placeholder="Caption" value={label} onChange={e => setLabel(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
+                        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]">
+                          <option value="Artist">Artist</option>
+                          <option value="Event">Event</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider ml-1">Tags</label>
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2 p-4 bg-black/20 border border-white/10 rounded-xl max-h-48 overflow-y-auto">
+                            {availableTags.map(tag => (
+                              <button 
+                                key={tag} 
+                                type="button" 
+                                onClick={() => toggleTag(tag)} 
+                                onContextMenu={(e) => { e.preventDefault(); handleRenameTag(tag); }}
+                                title="Right click to rename"
+                                className={`px-3 py-1.5 rounded-full text-xs transition-all border ${selectedTags.includes(tag) ? "bg-[#F59E0B] border-[#F59E0B] text-[#0A0E1A]" : "bg-white/5 border-white/5 text-[#94A3B8] hover:border-white/20"}`}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                          <input type="text" placeholder="Add custom tags (comma separated)" value={customTags} onChange={e => setCustomTags(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button type="submit" disabled={loading} className="w-full bg-[#F59E0B] text-[#0A0E1A] font-bold py-4 rounded-xl shadow-lg shadow-[#F59E0B]/10 hover:opacity-90 transition-opacity">
+                      {loading ? "Saving..." : editingUrl ? "Update Image" : "Upload Image"}
+                    </button>
                   </div>
-                  <div className="aspect-[4/3] bg-black/20 rounded-xl overflow-hidden border border-white/10">
-                    {url ? <ImageWithFallback src={url} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#94A3B8]">Preview</div>}
+
+                  {/* PREVIEW - LARGER */}
+                  <div className="lg:col-span-3 space-y-2">
+                    <label className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider ml-1">Preview</label>
+                    <div className="aspect-video bg-black/20 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center relative group">
+                      {url ? (
+                        <ImageWithFallback src={url} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-4 text-[#94A3B8]">
+                          <ImageIcon className="w-12 h-12 opacity-20" />
+                          <p>Enter a URL to see preview</p>
+                        </div>
+                      )}
+                      {url && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <span className="text-white text-xs font-medium px-3 py-1.5 bg-black/60 rounded-full backdrop-blur-md border border-white/10">Full Preview Mode</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-[#94A3B8]">Select Tags</label>
-                  <div className="flex flex-wrap gap-2 p-4 bg-black/20 border border-white/10 rounded-xl max-h-32 overflow-y-auto">
-                    {availableTags.map(tag => (
-                      <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`px-3 py-1 rounded-full text-xs transition-all ${selectedTags.includes(tag) ? "bg-[#F59E0B] text-[#0A0E1A]" : "bg-white/5 text-[#94A3B8]"}`}>
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <input type="text" placeholder="Add custom tags (comma separated)" value={customTags} onChange={e => setCustomTags(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white" />
-                <button type="submit" disabled={loading} className="w-full bg-[#F59E0B] text-[#0A0E1A] font-bold py-4 rounded-xl">
-                  {loading ? "Saving..." : editingUrl ? "Update Image" : "Upload Image"}
-                </button>
               </form>
             </motion.div>
-
-            {/* TAGS */}
-            <div className="space-y-6">
-              <div className="bg-[#1A1F2E]/80 backdrop-blur-xl rounded-[24px] border border-white/10 p-6 shadow-2xl">
-                <h3 className="text-xl font-serif text-white mb-4">Create Tag</h3>
-                <form onSubmit={async (e) => { e.preventDefault(); if (!newTag) return; setLoading(true); await addTag(newTag); setNewTag(""); setLoading(false); }} className="space-y-4">
-                  <input type="text" placeholder="Tag Name" value={newTag} onChange={e => setNewTag(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white" />
-                  <button type="submit" className="w-full bg-white/10 text-white py-3 rounded-xl hover:bg-white/20">Add Tag</button>
-                </form>
-              </div>
-            </div>
           </div>
 
           {/* LIST */}
