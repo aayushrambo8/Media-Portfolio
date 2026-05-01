@@ -3,30 +3,32 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  getDocs, 
-  setDoc, 
-  doc, 
-  deleteDoc, 
-  query, 
-  orderBy, 
-  writeBatch,
-  getDoc,
-  addDoc
-} from "firebase/firestore";
+import fs from "fs/promises";
+import path from "path";
 
-// Helper for reordering and fetching
-async function getOrderedGallery() {
-  const q = query(collection(db, "gallery"), orderBy("order", "asc"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+const DATA_DIR = path.join(process.cwd(), "src/data");
+const GALLERY_FILE = path.join(DATA_DIR, "gallery.json");
+const TAGS_FILE = path.join(DATA_DIR, "tags.json");
+const TIMELINE_FILE = path.join(DATA_DIR, "timeline.json");
+const MILESTONES_FILE = path.join(DATA_DIR, "milestones.json");
+
+async function readJson(file: string) {
+  try {
+    const data = await fs.readFile(file, "utf-8");
+    return JSON.parse(data);
+  } catch (e) {
+    console.error(`Error reading ${file}:`, e);
+    return [];
+  }
+}
+
+async function writeJson(file: string, data: any) {
+  await fs.writeFile(file, JSON.stringify(data, null, 2), "utf-8");
 }
 
 async function autoPruneTags() {
   try {
-    const images = await getOrderedGallery();
+    const images = await readJson(GALLERY_FILE);
     const activeTags = new Set<string>();
     
     images.forEach((img: any) => {
@@ -38,13 +40,13 @@ async function autoPruneTags() {
       }
     });
 
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    const currentTags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
+    const currentTags = await readJson(TAGS_FILE) as string[];
     const newTags = currentTags.filter(tag => activeTags.has(tag));
 
     if (newTags.length !== currentTags.length) {
-      await setDoc(doc(db, "config", "tags"), { list: newTags.sort() });
-      return newTags.sort();
+      const sortedTags = newTags.sort();
+      await writeJson(TAGS_FILE, sortedTags);
+      return sortedTags;
     }
     return currentTags;
   } catch (error) {
@@ -52,7 +54,6 @@ async function autoPruneTags() {
     return [];
   }
 }
-
 
 export async function login(username: string, password: string) {
   const envUser = process.env.ADMIN_USERNAME || "admin";
@@ -90,14 +91,13 @@ export async function addTag(tag: string) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
+    const tags = await readJson(TAGS_FILE) as string[];
     const formattedTag = tag.trim();
     
     if (formattedTag && !tags.includes(formattedTag)) {
       tags.push(formattedTag);
       tags.sort();
-      await setDoc(doc(db, "config", "tags"), { list: tags });
+      await writeJson(TAGS_FILE, tags);
       revalidatePath("/admin");
       revalidatePath("/gallery");
       return { success: true };
@@ -114,8 +114,7 @@ export async function addTags(newTags: string[]) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
+    const tags = await readJson(TAGS_FILE) as string[];
     let changed = false;
 
     newTags.forEach(tag => {
@@ -128,7 +127,7 @@ export async function addTags(newTags: string[]) {
 
     if (changed) {
       tags.sort();
-      await setDoc(doc(db, "config", "tags"), { list: tags });
+      await writeJson(TAGS_FILE, tags);
       revalidatePath("/admin");
       revalidatePath("/gallery");
     }
@@ -144,35 +143,31 @@ export async function updateTag(oldName: string, newName: string) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    // Update tags list
-    const tagsDoc = await getDoc(doc(db, "config", "tags"));
-    const tags = (tagsDoc.exists() ? tagsDoc.data().list : []) as string[];
+    const tags = await readJson(TAGS_FILE) as string[];
     const index = tags.indexOf(oldName);
     if (index !== -1) {
       tags[index] = newName.trim();
-      await setDoc(doc(db, "config", "tags"), { list: tags.sort() });
+      await writeJson(TAGS_FILE, tags.sort());
     }
 
-    // Update tags in gallery documents
-    const q = query(collection(db, "gallery"));
-    const snapshot = await getDocs(q);
-    const batch = writeBatch(db);
-    let count = 0;
-
-    snapshot.docs.forEach(d => {
-      const img = d.data();
+    const images = await readJson(GALLERY_FILE);
+    let changed = false;
+    const updatedImages = images.map((img: any) => {
       if (img.tags) {
         const tagList = img.tags.split(",").map((t: string) => t.trim());
         const tagIndex = tagList.indexOf(oldName);
         if (tagIndex !== -1) {
           tagList[tagIndex] = newName.trim();
-          batch.update(d.ref, { tags: tagList.join(", ") });
-          count++;
+          changed = true;
+          return { ...img, tags: tagList.join(", ") };
         }
       }
+      return img;
     });
 
-    if (count > 0) await batch.commit();
+    if (changed) {
+      await writeJson(GALLERY_FILE, updatedImages);
+    }
     
     revalidatePath("/admin");
     revalidatePath("/gallery");
@@ -188,14 +183,10 @@ export async function addImage(image: { url: string; label: string; category: st
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const q = query(collection(db, "gallery"), orderBy("order", "asc"));
-    const snapshot = await getDocs(q);
-    const minOrder = snapshot.empty ? 0 : snapshot.docs[0].data().order - 1;
-
-    await addDoc(collection(db, "gallery"), {
-      ...image,
-      order: minOrder
-    });
+    const images = await readJson(GALLERY_FILE);
+    // Add to the beginning
+    const newImages = [image, ...images];
+    await writeJson(GALLERY_FILE, newImages);
 
     revalidatePath("/admin");
     revalidatePath("/gallery");
@@ -211,12 +202,12 @@ export async function updateImage(originalUrl: string, updatedImage: { url: stri
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const q = query(collection(db, "gallery"));
-    const snapshot = await getDocs(q);
-    const docToUpdate = snapshot.docs.find(d => d.data().url === originalUrl);
+    const images = await readJson(GALLERY_FILE);
+    const index = images.findIndex((img: any) => img.url === originalUrl);
     
-    if (docToUpdate) {
-      await setDoc(docToUpdate.ref, { ...updatedImage }, { merge: true });
+    if (index !== -1) {
+      images[index] = { ...updatedImage };
+      await writeJson(GALLERY_FILE, images);
       const latestTags = await autoPruneTags();
       revalidatePath("/admin");
       revalidatePath("/gallery");
@@ -234,12 +225,11 @@ export async function deleteImage(url: string) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const q = query(collection(db, "gallery"));
-    const snapshot = await getDocs(q);
-    const docToDelete = snapshot.docs.find(d => d.data().url === url);
+    const images = await readJson(GALLERY_FILE);
+    const newImages = images.filter((img: any) => img.url !== url);
 
-    if (docToDelete) {
-      await deleteDoc(docToDelete.ref);
+    if (newImages.length !== images.length) {
+      await writeJson(GALLERY_FILE, newImages);
       const latestTags = await autoPruneTags();
       revalidatePath("/admin");
       revalidatePath("/gallery");
@@ -257,7 +247,7 @@ export async function updateTimeline(events: any[]) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    await setDoc(doc(db, "config", "timeline"), { events });
+    await writeJson(TIMELINE_FILE, events);
     revalidatePath("/");
     revalidatePath("/admin");
     return { success: true };
@@ -272,7 +262,7 @@ export async function updateMilestones(milestones: any[]) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    await setDoc(doc(db, "config", "milestones"), { list: milestones });
+    await writeJson(MILESTONES_FILE, milestones);
     revalidatePath("/about");
     revalidatePath("/admin");
     return { success: true };
@@ -287,13 +277,8 @@ export async function reorderImages(newImages: any[]) {
   if (!session) return { success: false, error: "Unauthorized" };
 
   try {
-    const batch = writeBatch(db);
-    newImages.forEach((img, idx) => {
-      if (img.id) {
-        batch.update(doc(db, "gallery", img.id), { order: idx });
-      }
-    });
-    await batch.commit();
+    // For local JSON, reorder just means saving the array as is
+    await writeJson(GALLERY_FILE, newImages);
     revalidatePath("/gallery");
     revalidatePath("/admin");
     return { success: true };
