@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  addImage, addTag, updateImage, deleteImage,
+  addImage, addTag, addTags, updateImage, deleteImage,
   updateTimeline, updateMilestones, reorderImages,
   logout, updateCredentials
 } from "../actions";
@@ -143,11 +143,14 @@ export default function AdminDashboard({
     let finalTags = [...selectedTags];
     if (customTags.trim()) {
       const newTagsList = customTags.split(",").map(t => t.trim()).filter(Boolean);
+      const tagsToAdd = newTagsList.filter(t => !availableTags.includes(t));
+      
+      if (tagsToAdd.length > 0) {
+        await addTags(tagsToAdd);
+        setAvailableTags(prev => [...prev, ...tagsToAdd].sort());
+      }
+      
       for (const t of newTagsList) {
-        if (!availableTags.includes(t)) {
-          await addTag(t);
-          setAvailableTags(prev => [...prev, t].sort());
-        }
         if (!finalTags.includes(t)) finalTags.push(t);
       }
     }
