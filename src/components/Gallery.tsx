@@ -5,10 +5,6 @@ import { ResponsiveMasonry } from "react-responsive-masonry";
 import Masonry from "react-responsive-masonry";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2 } from "lucide-react";
-import galleryData from "../data/gallery.json";
-import tagsData from "../data/tags.json";
-import { useEffect } from "react";
-
 /* ================= TYPES ================= */
 type GalleryImage = {
     url: string;
@@ -17,11 +13,10 @@ type GalleryImage = {
     tags: string;
 };
 
-/* ================= DATA ================= */
-const galleryImages: GalleryImage[] = galleryData;
-
 /* ================= COMPONENT ================= */
-export function Gallery() {
+export function Gallery({ initialImages = [], initialTags = [] }: { initialImages?: GalleryImage[], initialTags?: string[] }) {
+    const galleryImages = initialImages;
+    const allTags = initialTags;
     const [mounted, setMounted] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [tapIndex, setTapIndex] = useState<number | null>(null);
@@ -64,9 +59,6 @@ export function Gallery() {
 
     const isVisible = (index: number) =>
         hoveredIndex === index || tapIndex === index;
-
-    /* ================= TAG EXTRACTION ================= */
-    const allTags = tagsData;
 
     /* ================= FILTER ================= */
     const filteredImages = useMemo(() => {

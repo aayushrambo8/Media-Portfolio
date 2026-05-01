@@ -1,14 +1,13 @@
 import { Home } from "../components/Home";
-import fs from "fs/promises";
-import path from "path";
+import { db } from "@/lib/firebase";
+import { getDoc, doc } from "firebase/firestore";
 
 export default async function Page() {
-  const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
   let timelineEvents = [];
   
   try {
-    const data = await fs.readFile(TIMELINE_FILE, "utf-8");
-    timelineEvents = JSON.parse(data);
+    const timelineDoc = await getDoc(doc(db, "config", "timeline"));
+    if (timelineDoc.exists()) timelineEvents = timelineDoc.data().events;
   } catch (e) {
     console.error("Failed to load timeline data", e);
   }
