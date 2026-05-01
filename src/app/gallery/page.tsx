@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   let tags: string[] = [];
   let images: any[] = [];
-  
+
   try {
     const tagsDoc = await getDoc(doc(db, "portfolio_data", "tags"));
     if (tagsDoc.exists()) {
@@ -18,7 +18,8 @@ export default async function Page() {
     if (galleryDoc.exists()) {
       images = galleryDoc.data().items || [];
     }
-  } catch(e) {
+
+  } catch (e) {
     console.error("Could not fetch gallery data from Firestore", e);
   }
 
