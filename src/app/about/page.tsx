@@ -1,5 +1,6 @@
 import { About } from "../../components/About";
 import { db } from "@/lib/firebase";
+export const dynamic = "force-dynamic";
 import { getDoc, doc } from "firebase/firestore";
 
 export default async function Page() {
