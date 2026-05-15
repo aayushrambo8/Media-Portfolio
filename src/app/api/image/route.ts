@@ -8,8 +8,9 @@ export async function GET(request: Request) {
     return new NextResponse("Missing path parameter", { status: 400 });
   }
 
-  // Construct the original imagekit URL
-  const originalUrl = `https://ik.imagekit.io/aayushrambo8/${path}`;
+  // Construct the original imagekit URL with optimization parameters
+  // tr:w-800,q-75 resizes to 800px width and 75% quality for much faster loading and lower RAM usage
+  const originalUrl = `https://ik.imagekit.io/aayushrambo8/tr:w-800,q-75/${path}`;
 
   try {
     const imageResponse = await fetch(originalUrl);
@@ -18,13 +19,12 @@ export async function GET(request: Request) {
         return new NextResponse("Error fetching image", { status: imageResponse.status });
     }
 
-    const blob = await imageResponse.blob();
-    
     const headers = new Headers();
     headers.set("Content-Type", imageResponse.headers.get("content-type") || "image/jpeg");
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
-    return new NextResponse(blob, {
+    // Stream the response directly to avoid high server RAM consumption
+    return new NextResponse(imageResponse.body, {
         status: 200,
         headers,
     });
