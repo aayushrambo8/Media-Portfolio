@@ -9,8 +9,8 @@ export async function GET(request: Request) {
   }
 
   // Construct the original imagekit URL with optimization parameters
-  // tr:w-800,q-75 resizes to 800px width and 75% quality for much faster loading and lower RAM usage
-  const originalUrl = `https://ik.imagekit.io/aayushrambo8/tr:w-800,q-75/${path}`;
+  // tr:w-800,q-75,f-webp resizes to 800px width, 75% quality, and converts to WebP for maximum compression
+  const originalUrl = `https://ik.imagekit.io/aayushrambo8/tr:w-800,q-75,f-webp/${path}`;
 
   try {
     const imageResponse = await fetch(originalUrl);
