@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { DisableRightClick } from "@/components/DisableRightClick";
 import "../styles/index.css";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-sans" suppressHydrationWarning>
+        <DisableRightClick />
         <CustomCursor />
         <div className="grain-overlay" aria-hidden="true" />
         <div className="min-h-screen bg-[#0A0E1A] text-[#F8FAFC]">

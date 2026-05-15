@@ -566,7 +566,7 @@ export default function AdminDashboard({
                 <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between group">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
-                      <img src={event.image} alt="" className="w-full h-full object-cover" />
+                      <ImageWithFallback src={event.image} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <h4 className="text-white font-medium">{event.title}</h4>
