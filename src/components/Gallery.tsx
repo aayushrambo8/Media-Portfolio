@@ -22,11 +22,21 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const [numCols, setNumCols] = useState(3);
+    const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
 
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setMounted(true);
+        const updateCols = () => {
+            if (window.innerWidth >= 1024) setNumCols(3);
+            else if (window.innerWidth >= 768) setNumCols(2);
+            else setNumCols(1);
+        };
+        updateCols();
+        window.addEventListener('resize', updateCols);
+        return () => window.removeEventListener('resize', updateCols);
     }, []);
 
     /* ================= KEYBOARD NAV ================= */
@@ -58,6 +68,16 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
     const isVisible = (index: number) =>
         hoveredIndex === index || tapIndex === index;
+
+    const handleImageLoad = (url: string, e: React.SyntheticEvent<HTMLImageElement>) => {
+        const { naturalWidth, naturalHeight } = e.currentTarget;
+        if (naturalWidth && naturalHeight) {
+            setAspectRatios(prev => {
+                if (prev[url]) return prev;
+                return { ...prev, [url]: naturalWidth / naturalHeight };
+            });
+        }
+    };
 
     /* ================= FILTER ================= */
     const filteredImages = useMemo(() => {
@@ -185,54 +205,83 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
             </div>
 
             {/* ================= GRID ================= */}
-            {mounted ? (
-                <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
-                    {filteredImages.map((image, index) => {
-                        return (
-                            <motion.div
-                                key={image.url}
-                                whileHover={{ scale: 1.02 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                className="relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl break-inside-avoid mb-4"
-                                onMouseEnter={() => setHoveredIndex(index)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                onClick={() => setLightboxIndex(index)}
-                            >
-                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
-                                <ImageWithFallback
-                                    src={image.url}
-                                    alt={image.label}
-                                    className="w-full h-auto block transition-transform duration-700 group-hover:scale-105"
-                                />
+            {mounted ? (() => {
+                const columns = Array.from({ length: numCols }, () => ({ items: [] as GalleryImage[], height: 0 }));
+                filteredImages.forEach((img) => {
+                    const ar = aspectRatios[img.url] || 1; 
+                    const heightContrib = 1 / ar;
+                    
+                    let minCol = 0;
+                    let minH = columns[0].height;
+                    for (let i = 1; i < numCols; i++) {
+                        if (columns[i].height < minH) {
+                            minCol = i;
+                            minH = columns[i].height;
+                        }
+                    }
+                    
+                    columns[minCol].items.push(img);
+                    columns[minCol].height += heightContrib;
+                });
 
-                                {isVisible(index) && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="absolute bottom-0 w-full p-6 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col justify-end z-20"
-                                    >
-                                        <p className="text-white font-serif text-xl md:text-2xl mb-2 drop-shadow-lg">{image.label}</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
-                                                <span 
-                                                    key={i} 
-                                                    className="text-[10px] md:text-xs font-semibold px-3 py-1 bg-[#F59E0B]/30 border border-[#F59E0B]/40 text-[#FBBF24] rounded-full backdrop-blur-md"
+                return (
+                    <div className="flex w-full gap-4 items-start">
+                        {columns.map((col, colIndex) => (
+                            <div key={colIndex} className="flex flex-col gap-4 flex-1">
+                                {col.items.map((image) => {
+                                    const originalIndex = filteredImages.indexOf(image);
+                                    return (
+                                        <motion.div
+                                            key={image.url}
+                                            whileHover={{ scale: 1.02 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                            className="relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl w-full"
+                                            onMouseEnter={() => setHoveredIndex(originalIndex)}
+                                            onMouseLeave={() => setHoveredIndex(null)}
+                                            onClick={() => setLightboxIndex(originalIndex)}
+                                        >
+                                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                                            <ImageWithFallback
+                                                src={image.url}
+                                                alt={image.label}
+                                                className="w-full h-auto block transition-transform duration-700 group-hover:scale-105"
+                                                onLoad={(e) => handleImageLoad(image.url, e)}
+                                            />
+
+                                            {isVisible(originalIndex) && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="absolute bottom-0 w-full p-6 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col justify-end z-20"
                                                 >
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </motion.div>
-                        );
-                    })}
-                </div>
-            ) : (
-
-                <div className="columns-1 md:columns-2 lg:columns-3 gap-4 opacity-0">
-                    {galleryImages.slice(0, 6).map((img, i) => (
-                        <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse break-inside-avoid mb-4" />
+                                                    <p className="text-white font-serif text-xl md:text-2xl mb-2 drop-shadow-lg">{image.label}</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
+                                                            <span 
+                                                                key={i} 
+                                                                className="text-[10px] md:text-xs font-semibold px-3 py-1 bg-[#F59E0B]/30 border border-[#F59E0B]/40 text-[#FBBF24] rounded-full backdrop-blur-md"
+                                                            >
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                );
+            })() : (
+                <div className="flex w-full gap-4 opacity-0">
+                    {Array.from({ length: 3 }).map((_, colIndex) => (
+                        <div key={colIndex} className="flex flex-col gap-4 flex-1">
+                            {galleryImages.slice(0, 2).map((img, i) => (
+                                <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse w-full" />
+                            ))}
+                        </div>
                     ))}
                 </div>
             )}

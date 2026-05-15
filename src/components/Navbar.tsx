@@ -77,7 +77,7 @@ export function Navbar() {
                   transition={{ duration: 0.4, ease: "easeInOut" }}
                   className="w-12 h-12 flex items-center justify-center shadow-lg overflow-hidden bg-white/5"
                 >
-                  <img className="w-full h-full object-contain p-1" src="https://ik.imagekit.io/aayushrambo8/logo.jpg" alt="Logo" />
+                  <img className="w-full h-full object-contain p-1" src="/api/image?path=logo.jpg" alt="Logo" />
                 </motion.div>
                 <motion.div
                   layout
