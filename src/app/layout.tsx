@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Navbar } from "@/components/Navbar";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { DisableRightClick } from "@/components/DisableRightClick";
@@ -30,6 +31,7 @@ export default function RootLayout({
           <Navbar />
           {children}
         </div>
+        <Analytics />
       </body>
     </html>
   );
