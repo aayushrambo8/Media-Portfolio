@@ -129,7 +129,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[60] flex items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.3)_0%,_rgba(0,0,0,0.95)_100%)] backdrop-blur-xl p-4"
                     >
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95, y: 20 }}
@@ -139,14 +139,14 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                 <h2 className="text-2xl font-serif text-white">Filters</h2>
                                 <div className="flex items-center gap-4">
                                     {selectedTags.length > 0 && (
-                                        <button 
+                                        <button
                                             onClick={() => setSelectedTags([])}
                                             className="text-sm text-[#94A3B8] hover:text-white transition-colors"
                                         >
                                             Clear all
                                         </button>
                                     )}
-                                    <button 
+                                    <button
                                         onClick={() => setIsFilterOpen(false)}
                                         className="p-2 hover:bg-white/10 rounded-full transition-colors"
                                     >
@@ -161,19 +161,17 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                         key={tag}
                                         className="flex items-center gap-4 cursor-pointer group p-3 hover:bg-white/5 rounded-xl transition-all duration-200"
                                     >
-                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 ${
-                                            selectedTags.includes(tag) 
-                                                ? "bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] border-transparent shadow-[0_0_15px_rgba(245,158,11,0.4)]" 
-                                                : "border-white/20 group-hover:border-white/40 bg-black/20"
-                                        }`}>
+                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 ${selectedTags.includes(tag)
+                                            ? "bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] border-transparent shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+                                            : "border-white/20 group-hover:border-white/40 bg-black/20"
+                                            }`}>
                                             {selectedTags.includes(tag) && <Check className="w-4 h-4 text-[#0A0E1A]" strokeWidth={3} />}
                                         </div>
-                                        <span className={`text-lg transition-colors ${
-                                            selectedTags.includes(tag) ? "text-white font-medium" : "text-[#94A3B8] group-hover:text-white"
-                                        }`}>
+                                        <span className={`text-lg transition-colors ${selectedTags.includes(tag) ? "text-white font-medium" : "text-[#94A3B8] group-hover:text-white"
+                                            }`}>
                                             {tag}
                                         </span>
-                                        <input 
+                                        <input
                                             type="checkbox"
                                             className="hidden"
                                             checked={selectedTags.includes(tag)}
@@ -198,9 +196,9 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
             <div className="flex items-center justify-between mb-12 border-b border-white/10 pb-6">
                 {/* Spacer for perfect center alignment */}
                 <div className="flex-1 hidden md:block"></div>
-                
+
                 <h1 className="text-4xl text-white tracking-widest font-serif text-center flex-1">GALLERY</h1>
-                
+
                 <div className="flex-1 flex justify-end">
                     <button
                         onClick={() => setIsFilterOpen(true)}
@@ -215,9 +213,9 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
             {mounted ? (() => {
                 const columns = Array.from({ length: numCols }, () => ({ items: [] as GalleryImage[], height: 0 }));
                 filteredImages.forEach((img) => {
-                    const ar = aspectRatios[img.url] || 1; 
+                    const ar = aspectRatios[img.url] || 1;
                     const heightContrib = 1 / ar;
-                    
+
                     let minCol = 0;
                     let minH = columns[0].height;
                     for (let i = 1; i < numCols; i++) {
@@ -226,7 +224,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                             minH = columns[i].height;
                         }
                     }
-                    
+
                     columns[minCol].items.push(img);
                     columns[minCol].height += heightContrib;
                 });
@@ -256,7 +254,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                             />
 
                                             {isVisible(originalIndex) && (
-                                                <motion.div 
+                                                <motion.div
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     className="absolute bottom-0 w-full p-6 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col justify-end z-20"
@@ -264,8 +262,8 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                                     <p className="text-white font-serif text-xl md:text-2xl mb-2 drop-shadow-lg">{image.label}</p>
                                                     <div className="flex flex-wrap gap-2">
                                                         {image.tags.split(",").map(t => t.trim()).filter(Boolean).map((tag, i) => (
-                                                            <span 
-                                                                key={i} 
+                                                            <span
+                                                                key={i}
                                                                 className="text-[10px] md:text-xs font-semibold px-3 py-1 bg-[#F59E0B]/30 border border-[#F59E0B]/40 text-[#FBBF24] rounded-full backdrop-blur-md"
                                                             >
                                                                 {tag}
@@ -307,7 +305,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
                         {/* Controls */}
                         <div className="absolute top-6 right-6 flex items-center gap-4 z-[110]">
-                            <button 
+                            <button
                                 onClick={() => {
                                     if (navigator.share) {
                                         navigator.share({
@@ -320,7 +318,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                             >
                                 <Share2 className="w-5 h-5" />
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setLightboxIndex(null)}
                                 className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
                             >
@@ -329,13 +327,13 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                         </div>
 
                         {/* Navigation */}
-                        <button 
+                        <button
                             onClick={prevImage}
                             className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all z-[110] hidden md:block"
                         >
                             <ChevronLeft className="w-8 h-8" />
                         </button>
-                        <button 
+                        <button
                             onClick={nextImage}
                             className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all z-[110] hidden md:block"
                         >
@@ -343,7 +341,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                         </button>
 
                         {/* Image Container */}
-                        <motion.div 
+                        <motion.div
                             key={lightboxIndex}
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -362,7 +360,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
                             {/* Image Info */}
                             <div className="mt-8 text-center">
-                                <motion.h3 
+                                <motion.h3
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className="text-2xl md:text-4xl font-serif text-white mb-2"
