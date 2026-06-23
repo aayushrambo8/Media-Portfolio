@@ -3,27 +3,44 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-import fs from "fs/promises";
-import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "src/data");
-const GALLERY_FILE = path.join(DATA_DIR, "gallery.json");
-const TAGS_FILE = path.join(DATA_DIR, "tags.json");
-const TIMELINE_FILE = path.join(DATA_DIR, "timeline.json");
-const MILESTONES_FILE = path.join(DATA_DIR, "milestones.json");
+import { supabase } from "../lib/supabase";
 
-async function readJson(file: string) {
+const GALLERY_FILE = "gallery";
+const TAGS_FILE = "tags";
+const TIMELINE_FILE = "timeline";
+const MILESTONES_FILE = "milestones";
+
+async function readJson(key: string) {
   try {
-    const data = await fs.readFile(file, "utf-8");
-    return JSON.parse(data);
+    const { data, error } = await supabase
+      .from("portfolio_data")
+      .select("items")
+      .eq("key", key)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        return [];
+      }
+      throw error;
+    }
+    return data?.items || [];
   } catch (e) {
-    console.error(`Error reading ${file}:`, e);
+    console.error(`Error reading ${key} from Supabase:`, e);
     return [];
   }
 }
 
-async function writeJson(file: string, data: any) {
-  await fs.writeFile(file, JSON.stringify(data, null, 2), "utf-8");
+async function writeJson(key: string, data: any) {
+  const { error } = await supabase
+    .from("portfolio_data")
+    .upsert({ key, items: data });
+
+  if (error) {
+    console.error(`Error writing ${key} to Supabase:`, error);
+    throw error;
+  }
 }
 
 async function autoPruneTags() {

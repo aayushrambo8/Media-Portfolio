@@ -1,18 +1,27 @@
 import { About } from "../../components/About";
-import fs from "fs/promises";
-import path from "path";
+import { supabase } from "../../lib/supabase";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
   let milestones = [];
   
   try {
-    const milestonesData = await fs.readFile(MILESTONES_FILE, "utf-8");
-    milestones = JSON.parse(milestonesData);
+    const { data, error } = await supabase
+      .from("portfolio_data")
+      .select("items")
+      .eq("key", "milestones")
+      .single();
+
+    if (error) {
+      if (error.code !== "PGRST116") {
+        throw error;
+      }
+    } else {
+      milestones = data?.items || [];
+    }
   } catch (e) {
-    console.error("Failed to load milestones data from JSON", e);
+    console.error("Failed to load milestones data from Supabase", e);
   }
 
   return <About milestones={milestones} />;

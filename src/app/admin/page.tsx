@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
-import fs from "fs/promises";
-import path from "path";
 import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
+import { supabase } from "../../lib/supabase";
 
 export default async function AdminPage() {
   const session = (await cookies()).get("admin_session");
@@ -10,30 +9,30 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  const TAGS_FILE = path.join(process.cwd(), "src/data/tags.json");
-  const GALLERY_FILE = path.join(process.cwd(), "src/data/gallery.json");
-  const TIMELINE_FILE = path.join(process.cwd(), "src/data/timeline.json");
-  const MILESTONES_FILE = path.join(process.cwd(), "src/data/milestones.json");
-  
   let tags: string[] = [];
   let images: any[] = [];
   let timeline: any[] = [];
   let milestones: any[] = [];
   
   try {
-    const tagsData = await fs.readFile(TAGS_FILE, "utf-8");
-    tags = JSON.parse(tagsData) as string[];
-    
-    const galleryData = await fs.readFile(GALLERY_FILE, "utf-8");
-    images = JSON.parse(galleryData);
+    const [tagsRes, galleryRes, timelineRes, milestonesRes] = await Promise.all([
+      supabase.from("portfolio_data").select("items").eq("key", "tags").single(),
+      supabase.from("portfolio_data").select("items").eq("key", "gallery").single(),
+      supabase.from("portfolio_data").select("items").eq("key", "timeline").single(),
+      supabase.from("portfolio_data").select("items").eq("key", "milestones").single(),
+    ]);
 
-    const timelineData = await fs.readFile(TIMELINE_FILE, "utf-8");
-    timeline = JSON.parse(timelineData);
+    if (tagsRes.error && tagsRes.error.code !== "PGRST116") throw tagsRes.error;
+    if (galleryRes.error && galleryRes.error.code !== "PGRST116") throw galleryRes.error;
+    if (timelineRes.error && timelineRes.error.code !== "PGRST116") throw timelineRes.error;
+    if (milestonesRes.error && milestonesRes.error.code !== "PGRST116") throw milestonesRes.error;
 
-    const milestonesData = await fs.readFile(MILESTONES_FILE, "utf-8");
-    milestones = JSON.parse(milestonesData);
+    tags = tagsRes.data?.items || [];
+    images = galleryRes.data?.items || [];
+    timeline = timelineRes.data?.items || [];
+    milestones = milestonesRes.data?.items || [];
   } catch(e) {
-    console.error("Could not read data files", e);
+    console.error("Could not read portfolio data from Supabase", e);
   }
 
   return (
