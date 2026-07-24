@@ -5,24 +5,23 @@ export const dynamic = "force-dynamic";
 
 export default async function Page() {
   let timelineEvents = [];
+  let showcaseImages: any[] = [];
   
   try {
-    const { data, error } = await supabase
-      .from("portfolio_data")
-      .select("items")
-      .eq("key", "timeline")
-      .single();
+    const [timelineRes, galleryRes] = await Promise.all([
+      supabase.from("portfolio_data").select("items").eq("key", "timeline").single(),
+      supabase.from("portfolio_data").select("items").eq("key", "gallery").single(),
+    ]);
 
-    if (error) {
-      if (error.code !== "PGRST116") {
-        throw error;
-      }
-    } else {
-      timelineEvents = data?.items || [];
+    if (timelineRes.data?.items) {
+      timelineEvents = timelineRes.data.items;
+    }
+    if (galleryRes.data?.items) {
+      showcaseImages = galleryRes.data.items;
     }
   } catch (e) {
-    console.error("Failed to load timeline data from Supabase", e);
+    console.error("Failed to load portfolio data from Supabase", e);
   }
 
-  return <Home timelineEvents={timelineEvents} />;
+  return <Home timelineEvents={timelineEvents} showcaseImages={showcaseImages} />;
 }

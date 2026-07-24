@@ -21,7 +21,20 @@ export type TimelineEvent = {
   image: string;
 };
 
-export function Home({ timelineEvents }: { timelineEvents: TimelineEvent[] }) {
+export type ShowcaseImage = {
+  url: string;
+  label?: string;
+  category?: string;
+  tags?: string;
+};
+
+export function Home({
+  timelineEvents,
+  showcaseImages = [],
+}: {
+  timelineEvents: TimelineEvent[];
+  showcaseImages?: ShowcaseImage[];
+}) {
   const [visibleItems, setVisibleItems] = useState<boolean[]>(
     new Array(timelineEvents.length).fill(false)
   );
@@ -30,6 +43,11 @@ export function Home({ timelineEvents }: { timelineEvents: TimelineEvent[] }) {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -50]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+
+  // Take latest 6 images for rolling window
+  const displayShowcase = showcaseImages.slice(0, 6);
+  // Duplicate for smooth seamless loop
+  const marqueeImages = displayShowcase.length > 0 ? [...displayShowcase, ...displayShowcase] : [];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -209,6 +227,61 @@ export function Home({ timelineEvents }: { timelineEvents: TimelineEvent[] }) {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Rolling Showcase Carousel Section */}
+      {marqueeImages.length > 0 && (
+        <section className="py-16 overflow-hidden relative border-y border-white/5 bg-[#0A0E1A]/40 backdrop-blur-md">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 mb-8 text-center">
+            <h2 className="text-2xl md:text-3xl font-serif text-[#F8FAFC]">Featured Shots</h2>
+            <p className="text-sm md:text-base text-[#94A3B8] mt-1">A rolling glimpse into recent captures</p>
+          </div>
+
+          <div className="relative w-full overflow-hidden flex [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+            <motion.div
+              className="flex gap-6 shrink-0"
+              animate={{ x: ["0%", "-50%"] }}
+              transition={{
+                duration: 25,
+                ease: "linear",
+                repeat: Infinity,
+              }}
+            >
+              {marqueeImages.map((img, idx) => (
+                <Link href="/gallery" key={idx}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="relative w-64 h-80 md:w-80 md:h-96 rounded-2xl overflow-hidden shadow-2xl border border-white/10 group flex-shrink-0 cursor-pointer"
+                  >
+                    <ImageWithFallback
+                      src={img.url}
+                      alt={img.label || "Showcase shot"}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                    {img.label && (
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <p className="text-white text-sm font-medium drop-shadow-md truncate">{img.label}</p>
+                      </div>
+                    )}
+                  </motion.div>
+                </Link>
+              ))}
+            </motion.div>
+          </div>
+
+          <div className="mt-8 text-center relative z-10">
+            <Link href="/gallery">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-2.5 bg-white/10 hover:bg-[#F59E0B] text-white hover:text-[#0A0E1A] border border-white/20 hover:border-[#F59E0B] rounded-full text-sm font-medium transition-all duration-300 shadow-lg inline-flex items-center gap-2"
+              >
+                View More <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Vertical Timeline Section */}
       <section className="py-16 md:py-24 lg:py-32 px-4 md:px-6 lg:px-12 bg-gradient-to-b from-transparent via-[#0F1419]/50 to-transparent mt-10 md:mt-20">
