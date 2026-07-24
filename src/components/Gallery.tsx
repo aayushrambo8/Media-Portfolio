@@ -3,20 +3,46 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo, useEffect } from "react";
 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2 } from "lucide-react";
+import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2, Music, Calendar, Folder, ArrowLeft, Layers } from "lucide-react";
 /* ================= TYPES ================= */
 type GalleryImage = {
     url: string;
     label: string;
     category: string;
     tags: string;
+    album: "Concerts" | "Events" | string;
+};
+
+type EventSubAlbum = {
+    name: string;
+    images: GalleryImage[];
+    coverUrl: string;
 };
 
 /* ================= COMPONENT ================= */
 export function Gallery({ initialImages = [], initialTags = [] }: { initialImages?: GalleryImage[], initialTags?: string[] }) {
-    const galleryImages = initialImages;
+    // Process initial images to ensure strict album property exists
+    const galleryImages: GalleryImage[] = useMemo(() => {
+        return initialImages.map(img => {
+            let albumVal: "Concerts" | "Events" = "Concerts";
+            if (img.album) {
+                albumVal = img.album.toLowerCase().includes("event") ? "Events" : "Concerts";
+            } else {
+                const cat = (img.category || "").toLowerCase();
+                const tags = (img.tags || "").toLowerCase();
+                if (cat === "events" || cat === "event" || tags.includes("event")) {
+                    albumVal = "Events";
+                }
+            }
+            return { ...img, album: albumVal };
+        });
+    }, [initialImages]);
+
     const allTags = initialTags;
     const [mounted, setMounted] = useState(false);
+    const [activeAlbum, setActiveAlbum] = useState<"Concerts" | "Events">("Concerts");
+    const [selectedSubAlbum, setSelectedSubAlbum] = useState<string | null>(null);
+
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [tapIndex, setTapIndex] = useState<number | null>(null);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -38,6 +64,78 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
         window.addEventListener('resize', updateCols);
         return () => window.removeEventListener('resize', updateCols);
     }, []);
+
+    /* ================= ALBUMS & SUB-ALBUMS ================= */
+    const concertImages = useMemo(() => {
+        return galleryImages.filter(img => img.album === "Concerts");
+    }, [galleryImages]);
+
+    const eventImages = useMemo(() => {
+        return galleryImages.filter(img => img.album === "Events");
+    }, [galleryImages]);
+
+    // Group Events into Event Name Sub-Albums derived from event tags (e.g. Kaizen'25, Anwesha'26, etc.)
+    const eventSubAlbums = useMemo(() => {
+        const subMap: Record<string, GalleryImage[]> = {};
+
+        eventImages.forEach(img => {
+            const tagList = img.tags.split(",").map(t => t.trim()).filter(Boolean);
+            // Find event name tag (exclude generic 'Event' tag if present)
+            const eventNameTag = tagList.find(t => t.toLowerCase() !== "event") || img.label || "General Events";
+            if (!subMap[eventNameTag]) {
+                subMap[eventNameTag] = [];
+            }
+            subMap[eventNameTag].push(img);
+        });
+
+        return Object.entries(subMap).map(([name, images]): EventSubAlbum => ({
+            name,
+            images,
+            coverUrl: images[0]?.url || ""
+        }));
+    }, [eventImages]);
+
+    const currentAlbumImages = useMemo(() => {
+        if (activeAlbum === "Concerts") return concertImages;
+        if (selectedSubAlbum) {
+            const sub = eventSubAlbums.find(s => s.name === selectedSubAlbum);
+            return sub ? sub.images : eventImages;
+        }
+        return eventImages;
+    }, [activeAlbum, selectedSubAlbum, concertImages, eventImages, eventSubAlbums]);
+
+    /* ================= FILTER (UNIFIED BASE FILTER) ================= */
+    const isTagFilterActive = selectedTags.length > 0;
+
+    const filteredImages = useMemo(() => {
+        // If filter tags selected, search across ALL images (common base across Concerts and Events)
+        const sourcePool = isTagFilterActive ? galleryImages : currentAlbumImages;
+
+        if (!isTagFilterActive) return currentAlbumImages;
+
+        return sourcePool.filter((img) => {
+            const imgTags = img.tags.split(",").map((t: string) => t.trim());
+            return selectedTags.some((tag: string) => imgTags.includes(tag));
+        });
+    }, [isTagFilterActive, galleryImages, currentAlbumImages, selectedTags]);
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags((prev) =>
+            prev.includes(tag)
+                ? prev.filter((t) => t !== tag)
+                : [...prev, tag]
+        );
+    };
+
+    const nextImage = () => {
+        if (lightboxIndex === null) return;
+        setLightboxIndex((lightboxIndex + 1) % filteredImages.length);
+    };
+
+    const prevImage = () => {
+        if (lightboxIndex === null) return;
+        setLightboxIndex((lightboxIndex - 1 + filteredImages.length) % filteredImages.length);
+    };
 
     /* ================= KEYBOARD NAV ================= */
     useEffect(() => {
@@ -86,37 +184,6 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
         }
     };
 
-    /* ================= FILTER ================= */
-    const filteredImages = useMemo(() => {
-        if (selectedTags.length === 0) return galleryImages;
-
-        return galleryImages.filter((img) => {
-            const imgTags = img.tags.split(",").map((t: string) => t.trim());
-
-            return selectedTags.some((tag: string) =>
-                imgTags.includes(tag)
-            );
-        });
-    }, [selectedTags]);
-
-    const toggleTag = (tag: string) => {
-        setSelectedTags((prev) =>
-            prev.includes(tag)
-                ? prev.filter((t) => t !== tag)
-                : [...prev, tag]
-        );
-    };
-
-    const nextImage = () => {
-        if (lightboxIndex === null) return;
-        setLightboxIndex((lightboxIndex + 1) % filteredImages.length);
-    };
-
-    const prevImage = () => {
-        if (lightboxIndex === null) return;
-        setLightboxIndex((lightboxIndex - 1 + filteredImages.length) % filteredImages.length);
-    };
-
     /* ================= UI ================= */
     return (
         <div className="pt-40 pb-20 px-4 relative">
@@ -136,7 +203,9 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                             className="w-full max-w-md bg-[#1A1F2E]/95 backdrop-blur-xl border border-white/10 rounded-[24px] p-6 shadow-2xl flex flex-col max-h-[85vh]"
                         >
                             <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 flex-shrink-0">
-                                <h2 className="text-2xl font-serif text-white">Filters</h2>
+                                <h2 className="text-2xl font-serif text-white">
+                                    Filter Tags {isTagFilterActive ? "(Global)" : `(${activeAlbum})`}
+                                </h2>
                                 <div className="flex items-center gap-4">
                                     {selectedTags.length > 0 && (
                                         <button
@@ -192,22 +261,198 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 )}
             </AnimatePresence>
 
-            {/* ================= HEADER ================= */}
-            <div className="flex items-center justify-between mb-12 border-b border-white/10 pb-6">
-                {/* Spacer for perfect center alignment */}
-                <div className="flex-1 hidden md:block"></div>
+            {/* ================= HEADER & BREADCRUMBS ================= */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 border-b border-white/10 pb-6">
+                <div>
+                    {/* BREADCRUMB DIRECTORY TREE NAV */}
+                    <div className="flex items-center gap-2 text-sm text-[#94A3B8] mb-2 font-mono">
+                        <span 
+                            onClick={() => { setSelectedSubAlbum(null); setSelectedTags([]); }}
+                            className="hover:text-white cursor-pointer transition-colors"
+                        >
+                            Gallery
+                        </span>
+                        <span>/</span>
+                        <span 
+                            onClick={() => { setSelectedSubAlbum(null); setSelectedTags([]); }}
+                            className={`hover:text-white cursor-pointer transition-colors ${!selectedSubAlbum ? "text-[#F59E0B] font-semibold" : ""}`}
+                        >
+                            {activeAlbum}
+                        </span>
+                        {activeAlbum === "Events" && selectedSubAlbum && (
+                            <>
+                                <span>/</span>
+                                <span className="text-[#3B82F6] font-semibold">{selectedSubAlbum}</span>
+                            </>
+                        )}
+                    </div>
 
-                <h1 className="text-4xl text-white tracking-widest font-serif text-center flex-1">GALLERY</h1>
+                    <h1 className="text-4xl text-white tracking-widest font-serif flex items-center gap-3">
+                        {activeAlbum === "Events" && selectedSubAlbum ? selectedSubAlbum.toUpperCase() : activeAlbum.toUpperCase()}
+                    </h1>
+                </div>
 
-                <div className="flex-1 flex justify-end">
+                <div className="flex items-center gap-3">
+                    {activeAlbum === "Events" && selectedSubAlbum && (
+                        <button
+                            onClick={() => setSelectedSubAlbum(null)}
+                            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-3 rounded-full border border-white/10 text-white text-sm transition-all"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Back to Events
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsFilterOpen(true)}
-                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border border-white/10"
+                        className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border ${
+                            isTagFilterActive 
+                                ? "bg-[#F59E0B] text-[#0A0E1A] border-[#F59E0B] font-semibold shadow-[0_0_20px_rgba(245,158,11,0.3)]" 
+                                : "bg-white/5 hover:bg-white/10 text-white border-white/10"
+                        }`}
                     >
-                        <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span>
+                        <Filter className="w-4 h-4" /> 
+                        <span>Filter Tags {isTagFilterActive && `(${selectedTags.length})`}</span>
                     </button>
                 </div>
             </div>
+
+            {/* ================= UNIFIED TAG FILTER INDICATOR BANNER ================= */}
+            {isTagFilterActive && (
+                <div className="max-w-4xl mx-auto mb-8 p-4 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-[#FBBF24]">
+                        <Layers className="w-5 h-5" />
+                        <span className="text-sm font-medium">
+                            Showing results across all albums for selected tags: {selectedTags.join(", ")}
+                        </span>
+                    </div>
+                    <button 
+                        onClick={() => setSelectedTags([])}
+                        className="text-xs text-white/80 hover:text-white bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Clear Filter
+                    </button>
+                </div>
+            )}
+
+            {/* ================= TOP-LEVEL ALBUMS SELECTOR ================= */}
+            {!isTagFilterActive && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto">
+                    {/* CONCERTS ALBUM CARD */}
+                    <motion.div
+                        whileHover={{ scale: 1.02, y: -4 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                            setActiveAlbum("Concerts");
+                            setSelectedSubAlbum(null);
+                            setSelectedTags([]);
+                        }}
+                        className={`relative rounded-3xl p-6 cursor-pointer overflow-hidden border transition-all duration-300 ${
+                            activeAlbum === "Concerts"
+                                ? "bg-gradient-to-br from-[#F59E0B]/20 via-[#1A1F2E] to-[#1A1F2E] border-[#F59E0B] shadow-[0_0_30px_rgba(245,158,11,0.2)]"
+                                : "bg-[#1A1F2E]/60 hover:bg-[#1A1F2E]/90 border-white/10 hover:border-white/20"
+                        }`}
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-3 rounded-2xl ${activeAlbum === "Concerts" ? "bg-[#F59E0B] text-[#0A0E1A]" : "bg-white/10 text-white"}`}>
+                                    <Music className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-serif text-white">Concerts</h3>
+                                    <p className="text-xs text-[#94A3B8]">{concertImages.length} Photos</p>
+                                </div>
+                            </div>
+                            {activeAlbum === "Concerts" && (
+                                <span className="bg-[#F59E0B]/20 border border-[#F59E0B]/50 text-[#FBBF24] text-xs font-semibold px-3 py-1 rounded-full">
+                                    Active Folder
+                                </span>
+                            )}
+                        </div>
+                        {/* Preview Images Stack */}
+                        <div className="flex gap-2 h-20 rounded-xl overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+                            {concertImages.slice(0, 3).map((img, idx) => (
+                                <div key={idx} className="flex-1 relative overflow-hidden rounded-lg bg-black/40">
+                                    <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* EVENTS ALBUM CARD */}
+                    <motion.div
+                        whileHover={{ scale: 1.02, y: -4 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                            setActiveAlbum("Events");
+                            setSelectedSubAlbum(null);
+                            setSelectedTags([]);
+                        }}
+                        className={`relative rounded-3xl p-6 cursor-pointer overflow-hidden border transition-all duration-300 ${
+                            activeAlbum === "Events"
+                                ? "bg-gradient-to-br from-[#3B82F6]/20 via-[#1A1F2E] to-[#1A1F2E] border-[#3B82F6] shadow-[0_0_30px_rgba(59,130,246,0.2)]"
+                                : "bg-[#1A1F2E]/60 hover:bg-[#1A1F2E]/90 border-white/10 hover:border-white/20"
+                        }`}
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-3 rounded-2xl ${activeAlbum === "Events" ? "bg-[#3B82F6] text-white" : "bg-white/10 text-white"}`}>
+                                    <Calendar className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-serif text-white">Events</h3>
+                                    <p className="text-xs text-[#94A3B8]">{eventImages.length} Photos ({eventSubAlbums.length} Albums)</p>
+                                </div>
+                            </div>
+                            {activeAlbum === "Events" && (
+                                <span className="bg-[#3B82F6]/20 border border-[#3B82F6]/50 text-[#60A5FA] text-xs font-semibold px-3 py-1 rounded-full">
+                                    Active Folder
+                                </span>
+                            )}
+                        </div>
+                        {/* Preview Images Stack */}
+                        <div className="flex gap-2 h-20 rounded-xl overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+                            {eventImages.slice(0, 3).map((img, idx) => (
+                                <div key={idx} className="flex-1 relative overflow-hidden rounded-lg bg-black/40">
+                                    <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* ================= EVENTS > SUB-ALBUMS GRID (EVENTS ROOT VIEW) ================= */}
+            {activeAlbum === "Events" && !selectedSubAlbum && !isTagFilterActive && (
+                <div className="mb-12">
+                    <h2 className="text-xl font-serif text-white mb-6 flex items-center gap-2">
+                        <Folder className="w-5 h-5 text-[#3B82F6]" /> Events Directory
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {eventSubAlbums.map((subAlbum) => (
+                            <motion.div
+                                key={subAlbum.name}
+                                whileHover={{ scale: 1.03, y: -4 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setSelectedSubAlbum(subAlbum.name)}
+                                className="bg-[#1A1F2E]/80 border border-white/10 hover:border-[#3B82F6]/50 rounded-2xl overflow-hidden cursor-pointer p-4 group transition-all duration-300 shadow-lg"
+                            >
+                                <div className="aspect-video relative rounded-xl overflow-hidden mb-4 bg-black/40">
+                                    <ImageWithFallback src={subAlbum.coverUrl} alt={subAlbum.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                    <span className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs px-2.5 py-1 rounded-md font-mono">
+                                        {subAlbum.images.length} Photos
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-white group-hover:text-[#60A5FA] transition-colors">
+                                        {subAlbum.name}
+                                    </h3>
+                                    <ChevronRight className="w-5 h-5 text-[#94A3B8] group-hover:text-white group-hover:translate-x-1 transition-all" />
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* ================= GRID ================= */}
             {mounted ? (() => {

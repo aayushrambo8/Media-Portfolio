@@ -20,6 +20,7 @@ type GalleryImage = {
   label: string;
   category: string;
   tags: string;
+  album: "Concerts" | "Events" | string;
 };
 
 type TimelineEvent = {
@@ -55,6 +56,7 @@ export default function AdminDashboard({
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [category, setCategory] = useState("Artist");
+  const [album, setAlbum] = useState<"Concerts" | "Events">("Concerts");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState("");
   const [editingUrl, setEditingUrl] = useState<string | null>(null);
@@ -132,6 +134,7 @@ export default function AdminDashboard({
     setUrl(img.url);
     setLabel(img.label);
     setCategory(img.category);
+    setAlbum((img.album as "Concerts" | "Events") || "Concerts");
     setSelectedTags(img.tags.split(",").map(t => t.trim()).filter(t => t));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -141,6 +144,7 @@ export default function AdminDashboard({
     setUrl("");
     setLabel("");
     setCategory("Artist");
+    setAlbum("Concerts");
     setSelectedTags([]);
     setCustomTags("");
   };
@@ -185,7 +189,7 @@ export default function AdminDashboard({
       }
     }
 
-    const newImageData = { url, label, category, tags: finalTags.join(", ") };
+    const newImageData: GalleryImage = { url, label, category, album, tags: finalTags.join(", ") };
     const res = editingUrl ? await updateImage(editingUrl, newImageData) : await addImage(newImageData);
 
     if (res.success) {
@@ -390,9 +394,15 @@ export default function AdminDashboard({
                         <label className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider ml-1">Image Information</label>
                         <input type="url" placeholder="Image URL" value={url} onChange={e => setUrl(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
                         <input type="text" placeholder="Caption" value={label} onChange={e => setLabel(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]" />
+                        <label className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider ml-1">Album (Compulsory)</label>
+                        <select value={album} onChange={e => setAlbum(e.target.value as "Concerts" | "Events")} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B] font-semibold">
+                          <option value="Concerts">Concerts Album</option>
+                          <option value="Events">Events Album</option>
+                        </select>
                         <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#F59E0B]">
+                          <option value="Concerts">Concerts</option>
+                          <option value="Events">Events</option>
                           <option value="Artist">Artist</option>
-                          <option value="Event">Event</option>
                         </select>
                       </div>
 
@@ -471,8 +481,9 @@ export default function AdminDashboard({
                   className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-[#F59E0B]"
                 >
                   <option value="All">All Categories</option>
+                  <option value="Concerts">Concerts</option>
+                  <option value="Events">Events</option>
                   <option value="Artist">Artist</option>
-                  <option value="Event">Event</option>
                 </select>
                 <select 
                   value={filterTag} 
