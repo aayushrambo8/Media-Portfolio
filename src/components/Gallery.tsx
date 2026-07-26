@@ -3,45 +3,99 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo, useEffect } from "react";
 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Maximize2, Share2, Music, Calendar, Folder, ArrowLeft, Layers } from "lucide-react";
+import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Share2, Music, Calendar, ArrowLeft, Layers, Star, Zap } from "lucide-react";
+
 /* ================= TYPES ================= */
 type GalleryImage = {
     url: string;
     label: string;
     category: string;
     tags: string;
-    album: "Concerts" | "Events" | string;
+    album: string;
 };
 
-type EventSubAlbum = {
-    name: string;
-    images: GalleryImage[];
-    coverUrl: string;
+type AlbumId = "Concerts" | "Events" | "Anwesha" | "Kaizen";
+
+type AlbumConfig = {
+    id: AlbumId;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+    activeColor: string;
+    activeBg: string;
+    activeShadow: string;
+    activeBorder: string;
+    activeBadgeBg: string;
+    activeBadgeBorder: string;
+    activeBadgeText: string;
+    tagMatch: (tags: string, album: string) => boolean;
 };
+
+/* ================= ALBUM DEFINITIONS ================= */
+const ALBUM_CONFIGS: AlbumConfig[] = [
+    {
+        id: "Concerts",
+        label: "Concerts",
+        description: "Live concert photography",
+        icon: <Music className="w-6 h-6" />,
+        activeColor: "#F59E0B",
+        activeBg: "from-[#F59E0B]/20 via-[#1A1F2E] to-[#1A1F2E]",
+        activeShadow: "shadow-[0_0_30px_rgba(245,158,11,0.2)]",
+        activeBorder: "border-[#F59E0B]",
+        activeBadgeBg: "bg-[#F59E0B]/20",
+        activeBadgeBorder: "border-[#F59E0B]/50",
+        activeBadgeText: "text-[#FBBF24]",
+        tagMatch: (_tags, album) => album.toLowerCase() === "concerts",
+    },
+    {
+        id: "Events",
+        label: "Events",
+        description: "College & cultural events",
+        icon: <Calendar className="w-6 h-6" />,
+        activeColor: "#3B82F6",
+        activeBg: "from-[#3B82F6]/20 via-[#1A1F2E] to-[#1A1F2E]",
+        activeShadow: "shadow-[0_0_30px_rgba(59,130,246,0.2)]",
+        activeBorder: "border-[#3B82F6]",
+        activeBadgeBg: "bg-[#3B82F6]/20",
+        activeBadgeBorder: "border-[#3B82F6]/50",
+        activeBadgeText: "text-[#60A5FA]",
+        tagMatch: (_tags, album) => album.toLowerCase() === "events",
+    },
+    {
+        id: "Anwesha",
+        label: "Anwesha",
+        description: "IIT Patna Music Festival",
+        icon: <Star className="w-6 h-6" />,
+        activeColor: "#EC4899",
+        activeBg: "from-[#EC4899]/20 via-[#1A1F2E] to-[#1A1F2E]",
+        activeShadow: "shadow-[0_0_30px_rgba(236,72,153,0.2)]",
+        activeBorder: "border-[#EC4899]",
+        activeBadgeBg: "bg-[#EC4899]/20",
+        activeBadgeBorder: "border-[#EC4899]/50",
+        activeBadgeText: "text-[#F472B6]",
+        tagMatch: (tags, _album) => tags.toLowerCase().includes("anwesha"),
+    },
+    {
+        id: "Kaizen",
+        label: "Kaizen",
+        description: "AIIMS Patna Cultural Fest",
+        icon: <Zap className="w-6 h-6" />,
+        activeColor: "#10B981",
+        activeBg: "from-[#10B981]/20 via-[#1A1F2E] to-[#1A1F2E]",
+        activeShadow: "shadow-[0_0_30px_rgba(16,185,129,0.2)]",
+        activeBorder: "border-[#10B981]",
+        activeBadgeBg: "bg-[#10B981]/20",
+        activeBadgeBorder: "border-[#10B981]/50",
+        activeBadgeText: "text-[#34D399]",
+        tagMatch: (tags, _album) => tags.toLowerCase().includes("kaizen"),
+    },
+];
 
 /* ================= COMPONENT ================= */
 export function Gallery({ initialImages = [], initialTags = [] }: { initialImages?: GalleryImage[], initialTags?: string[] }) {
-    // Process initial images to ensure strict album property exists
-    const galleryImages: GalleryImage[] = useMemo(() => {
-        return initialImages.map(img => {
-            let albumVal: "Concerts" | "Events" = "Concerts";
-            if (img.album) {
-                albumVal = img.album.toLowerCase().includes("event") ? "Events" : "Concerts";
-            } else {
-                const cat = (img.category || "").toLowerCase();
-                const tags = (img.tags || "").toLowerCase();
-                if (cat === "events" || cat === "event" || tags.includes("event")) {
-                    albumVal = "Events";
-                }
-            }
-            return { ...img, album: albumVal };
-        });
-    }, [initialImages]);
-
     const allTags = initialTags;
     const [mounted, setMounted] = useState(false);
-    const [activeAlbum, setActiveAlbum] = useState<"Concerts" | "Events">("Concerts");
-    const [selectedSubAlbum, setSelectedSubAlbum] = useState<string | null>(null);
+    const [activeAlbum, setActiveAlbum] = useState<AlbumId>("Concerts");
 
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [tapIndex, setTapIndex] = useState<number | null>(null);
@@ -65,59 +119,41 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
         return () => window.removeEventListener('resize', updateCols);
     }, []);
 
-    /* ================= ALBUMS & SUB-ALBUMS ================= */
-    const concertImages = useMemo(() => {
-        return galleryImages.filter(img => img.album === "Concerts");
-    }, [galleryImages]);
+    /* ================= ALBUM IMAGE SETS ================= */
+    const albumImages = useMemo(() => {
+        const sets: Record<AlbumId, GalleryImage[]> = {
+            Concerts: [],
+            Events: [],
+            Anwesha: [],
+            Kaizen: [],
+        };
 
-    const eventImages = useMemo(() => {
-        return galleryImages.filter(img => img.album === "Events");
-    }, [galleryImages]);
-
-    // Group Events into Event Name Sub-Albums derived from event tags (e.g. Kaizen'25, Anwesha'26, etc.)
-    const eventSubAlbums = useMemo(() => {
-        const subMap: Record<string, GalleryImage[]> = {};
-
-        eventImages.forEach(img => {
-            const tagList = img.tags.split(",").map(t => t.trim()).filter(Boolean);
-            // Find event name tag (exclude generic 'Event' tag if present)
-            const eventNameTag = tagList.find(t => t.toLowerCase() !== "event") || img.label || "General Events";
-            if (!subMap[eventNameTag]) {
-                subMap[eventNameTag] = [];
-            }
-            subMap[eventNameTag].push(img);
+        initialImages.forEach(img => {
+            ALBUM_CONFIGS.forEach(cfg => {
+                if (cfg.tagMatch(img.tags || "", img.album || "")) {
+                    sets[cfg.id].push(img);
+                }
+            });
         });
 
-        return Object.entries(subMap).map(([name, images]): EventSubAlbum => ({
-            name,
-            images,
-            coverUrl: images[0]?.url || ""
-        }));
-    }, [eventImages]);
+        return sets;
+    }, [initialImages]);
 
     const currentAlbumImages = useMemo(() => {
-        if (activeAlbum === "Concerts") return concertImages;
-        if (selectedSubAlbum) {
-            const sub = eventSubAlbums.find(s => s.name === selectedSubAlbum);
-            return sub ? sub.images : eventImages;
-        }
-        return eventImages;
-    }, [activeAlbum, selectedSubAlbum, concertImages, eventImages, eventSubAlbums]);
+        return albumImages[activeAlbum] || [];
+    }, [activeAlbum, albumImages]);
 
-    /* ================= FILTER (UNIFIED BASE FILTER) ================= */
+    /* ================= FILTER ================= */
     const isTagFilterActive = selectedTags.length > 0;
 
     const filteredImages = useMemo(() => {
-        // If filter tags selected, search across ALL images (common base across Concerts and Events)
-        const sourcePool = isTagFilterActive ? galleryImages : currentAlbumImages;
-
         if (!isTagFilterActive) return currentAlbumImages;
 
-        return sourcePool.filter((img) => {
+        return initialImages.filter((img) => {
             const imgTags = img.tags.split(",").map((t: string) => t.trim());
             return selectedTags.some((tag: string) => imgTags.includes(tag));
         });
-    }, [isTagFilterActive, galleryImages, currentAlbumImages, selectedTags]);
+    }, [isTagFilterActive, initialImages, currentAlbumImages, selectedTags]);
 
     const toggleTag = (tag: string) => {
         setSelectedTags((prev) =>
@@ -183,6 +219,8 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
             });
         }
     };
+
+    const activeConfig = ALBUM_CONFIGS.find(c => c.id === activeAlbum)!;
 
     /* ================= UI ================= */
     return (
@@ -261,55 +299,36 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 )}
             </AnimatePresence>
 
-            {/* ================= HEADER & BREADCRUMBS ================= */}
+            {/* ================= HEADER ================= */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 border-b border-white/10 pb-6">
                 <div>
-                    {/* BREADCRUMB DIRECTORY TREE NAV */}
+                    {/* BREADCRUMB */}
                     <div className="flex items-center gap-2 text-sm text-[#94A3B8] mb-2 font-mono">
-                        <span 
-                            onClick={() => { setSelectedSubAlbum(null); setSelectedTags([]); }}
-                            className="hover:text-white cursor-pointer transition-colors"
-                        >
-                            Gallery
-                        </span>
+                        <span className="hover:text-white cursor-pointer transition-colors">Gallery</span>
                         <span>/</span>
-                        <span 
-                            onClick={() => { setSelectedSubAlbum(null); setSelectedTags([]); }}
-                            className={`hover:text-white cursor-pointer transition-colors ${!selectedSubAlbum ? "text-[#F59E0B] font-semibold" : ""}`}
+                        <span
+                            className="font-semibold transition-colors"
+                            style={{ color: activeConfig.activeColor }}
                         >
                             {activeAlbum}
                         </span>
-                        {activeAlbum === "Events" && selectedSubAlbum && (
-                            <>
-                                <span>/</span>
-                                <span className="text-[#3B82F6] font-semibold">{selectedSubAlbum}</span>
-                            </>
-                        )}
                     </div>
 
                     <h1 className="text-4xl text-white tracking-widest font-serif flex items-center gap-3">
-                        {activeAlbum === "Events" && selectedSubAlbum ? selectedSubAlbum.toUpperCase() : activeAlbum.toUpperCase()}
+                        {activeAlbum.toUpperCase()}
                     </h1>
+                    <p className="text-sm text-[#94A3B8] mt-1">{activeConfig.description}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {activeAlbum === "Events" && selectedSubAlbum && (
-                        <button
-                            onClick={() => setSelectedSubAlbum(null)}
-                            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-3 rounded-full border border-white/10 text-white text-sm transition-all"
-                        >
-                            <ArrowLeft className="w-4 h-4" /> Back to Events
-                        </button>
-                    )}
                     <button
                         onClick={() => setIsFilterOpen(true)}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border ${
-                            isTagFilterActive 
-                                ? "bg-[#F59E0B] text-[#0A0E1A] border-[#F59E0B] font-semibold shadow-[0_0_20px_rgba(245,158,11,0.3)]" 
+                        className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border ${isTagFilterActive
+                                ? "bg-[#F59E0B] text-[#0A0E1A] border-[#F59E0B] font-semibold shadow-[0_0_20px_rgba(245,158,11,0.3)]"
                                 : "bg-white/5 hover:bg-white/10 text-white border-white/10"
-                        }`}
+                            }`}
                     >
-                        <Filter className="w-4 h-4" /> 
+                        <Filter className="w-4 h-4" />
                         <span>Filter Tags {isTagFilterActive && `(${selectedTags.length})`}</span>
                     </button>
                 </div>
@@ -324,7 +343,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                             Showing results across all albums for selected tags: {selectedTags.join(", ")}
                         </span>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setSelectedTags([])}
                         className="text-xs text-white/80 hover:text-white bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
                     >
@@ -335,122 +354,76 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
             {/* ================= TOP-LEVEL ALBUMS SELECTOR ================= */}
             {!isTagFilterActive && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto">
-                    {/* CONCERTS ALBUM CARD */}
-                    <motion.div
-                        whileHover={{ scale: 1.02, y: -4 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            setActiveAlbum("Concerts");
-                            setSelectedSubAlbum(null);
-                            setSelectedTags([]);
-                        }}
-                        className={`relative rounded-3xl p-6 cursor-pointer overflow-hidden border transition-all duration-300 ${
-                            activeAlbum === "Concerts"
-                                ? "bg-gradient-to-br from-[#F59E0B]/20 via-[#1A1F2E] to-[#1A1F2E] border-[#F59E0B] shadow-[0_0_30px_rgba(245,158,11,0.2)]"
-                                : "bg-[#1A1F2E]/60 hover:bg-[#1A1F2E]/90 border-white/10 hover:border-white/20"
-                        }`}
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-3 rounded-2xl ${activeAlbum === "Concerts" ? "bg-[#F59E0B] text-[#0A0E1A]" : "bg-white/10 text-white"}`}>
-                                    <Music className="w-6 h-6" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12 max-w-5xl mx-auto">
+                    {ALBUM_CONFIGS.map((cfg) => {
+                        const isActive = activeAlbum === cfg.id;
+                        const imgs = albumImages[cfg.id];
+                        return (
+                            <motion.div
+                                key={cfg.id}
+                                whileHover={{ scale: 1.02, y: -4 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    setActiveAlbum(cfg.id);
+                                    setSelectedTags([]);
+                                }}
+                                className={`relative rounded-3xl p-5 cursor-pointer overflow-hidden border transition-all duration-300 ${isActive
+                                        ? `bg-gradient-to-br ${cfg.activeBg} ${cfg.activeBorder} ${cfg.activeShadow}`
+                                        : "bg-[#1A1F2E]/60 hover:bg-[#1A1F2E]/90 border-white/10 hover:border-white/20"
+                                    }`}
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="p-2.5 rounded-xl transition-all duration-300"
+                                            style={{
+                                                backgroundColor: isActive ? cfg.activeColor : "rgba(255,255,255,0.08)",
+                                                color: isActive ? "#0A0E1A" : "white",
+                                            }}
+                                        >
+                                            {cfg.icon}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-serif text-white">{cfg.label}</h3>
+                                            <p className="text-[10px] text-[#94A3B8]">{imgs.length} Photos</p>
+                                        </div>
+                                    </div>
+                                    {isActive && (
+                                        <span
+                                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.activeBadgeBg} ${cfg.activeBadgeBorder} ${cfg.activeBadgeText} border`}
+                                        >
+                                            Active
+                                        </span>
+                                    )}
                                 </div>
-                                <div>
-                                    <h3 className="text-2xl font-serif text-white">Concerts</h3>
-                                    <p className="text-xs text-[#94A3B8]">{concertImages.length} Photos</p>
+                                {/* Preview strip */}
+                                <div className="flex gap-1.5 h-14 rounded-xl overflow-hidden opacity-70">
+                                    {imgs.slice(0, 3).map((img, idx) => (
+                                        <div key={idx} className="flex-1 relative overflow-hidden rounded-lg bg-black/40">
+                                            <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                    {imgs.length === 0 && (
+                                        <div className="flex-1 flex items-center justify-center rounded-lg bg-white/5">
+                                            <Camera className="w-5 h-5 text-white/20" />
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                            {activeAlbum === "Concerts" && (
-                                <span className="bg-[#F59E0B]/20 border border-[#F59E0B]/50 text-[#FBBF24] text-xs font-semibold px-3 py-1 rounded-full">
-                                    Active Folder
-                                </span>
-                            )}
-                        </div>
-                        {/* Preview Images Stack */}
-                        <div className="flex gap-2 h-20 rounded-xl overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
-                            {concertImages.slice(0, 3).map((img, idx) => (
-                                <div key={idx} className="flex-1 relative overflow-hidden rounded-lg bg-black/40">
-                                    <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
-                                </div>
-                            ))}
-                        </div>
-                    </motion.div>
-
-                    {/* EVENTS ALBUM CARD */}
-                    <motion.div
-                        whileHover={{ scale: 1.02, y: -4 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                            setActiveAlbum("Events");
-                            setSelectedSubAlbum(null);
-                            setSelectedTags([]);
-                        }}
-                        className={`relative rounded-3xl p-6 cursor-pointer overflow-hidden border transition-all duration-300 ${
-                            activeAlbum === "Events"
-                                ? "bg-gradient-to-br from-[#3B82F6]/20 via-[#1A1F2E] to-[#1A1F2E] border-[#3B82F6] shadow-[0_0_30px_rgba(59,130,246,0.2)]"
-                                : "bg-[#1A1F2E]/60 hover:bg-[#1A1F2E]/90 border-white/10 hover:border-white/20"
-                        }`}
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-3 rounded-2xl ${activeAlbum === "Events" ? "bg-[#3B82F6] text-white" : "bg-white/10 text-white"}`}>
-                                    <Calendar className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-serif text-white">Events</h3>
-                                    <p className="text-xs text-[#94A3B8]">{eventImages.length} Photos ({eventSubAlbums.length} Albums)</p>
-                                </div>
-                            </div>
-                            {activeAlbum === "Events" && (
-                                <span className="bg-[#3B82F6]/20 border border-[#3B82F6]/50 text-[#60A5FA] text-xs font-semibold px-3 py-1 rounded-full">
-                                    Active Folder
-                                </span>
-                            )}
-                        </div>
-                        {/* Preview Images Stack */}
-                        <div className="flex gap-2 h-20 rounded-xl overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
-                            {eventImages.slice(0, 3).map((img, idx) => (
-                                <div key={idx} className="flex-1 relative overflow-hidden rounded-lg bg-black/40">
-                                    <ImageWithFallback src={img.url} alt={img.label} className="w-full h-full object-cover" />
-                                </div>
-                            ))}
-                        </div>
-                    </motion.div>
+                            </motion.div>
+                        );
+                    })}
                 </div>
             )}
 
-            {/* ================= EVENTS > SUB-ALBUMS GRID (EVENTS ROOT VIEW) ================= */}
-            {activeAlbum === "Events" && !selectedSubAlbum && !isTagFilterActive && (
-                <div className="mb-12">
-                    <h2 className="text-xl font-serif text-white mb-6 flex items-center gap-2">
-                        <Folder className="w-5 h-5 text-[#3B82F6]" /> Events Directory
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {eventSubAlbums.map((subAlbum) => (
-                            <motion.div
-                                key={subAlbum.name}
-                                whileHover={{ scale: 1.03, y: -4 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => setSelectedSubAlbum(subAlbum.name)}
-                                className="bg-[#1A1F2E]/80 border border-white/10 hover:border-[#3B82F6]/50 rounded-2xl overflow-hidden cursor-pointer p-4 group transition-all duration-300 shadow-lg"
-                            >
-                                <div className="aspect-video relative rounded-xl overflow-hidden mb-4 bg-black/40">
-                                    <ImageWithFallback src={subAlbum.coverUrl} alt={subAlbum.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                    <span className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs px-2.5 py-1 rounded-md font-mono">
-                                        {subAlbum.images.length} Photos
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold text-white group-hover:text-[#60A5FA] transition-colors">
-                                        {subAlbum.name}
-                                    </h3>
-                                    <ChevronRight className="w-5 h-5 text-[#94A3B8] group-hover:text-white group-hover:translate-x-1 transition-all" />
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
+            {/* ================= BACK BUTTON (when filter active) ================= */}
+            {isTagFilterActive && (
+                <div className="mb-6">
+                    <button
+                        onClick={() => setSelectedTags([])}
+                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-3 rounded-full border border-white/10 text-white text-sm transition-all"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Back to {activeAlbum}
+                    </button>
                 </div>
             )}
 
@@ -488,7 +461,10 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                                             className="relative rounded-3xl overflow-hidden cursor-pointer group shadow-xl w-full"
                                             onMouseEnter={() => setHoveredIndex(originalIndex)}
                                             onMouseLeave={() => setHoveredIndex(null)}
-                                            onClick={() => setLightboxIndex(originalIndex)}
+                                            onClick={() => {
+                                                handleInteraction(originalIndex);
+                                                setLightboxIndex(originalIndex);
+                                            }}
                                         >
                                             <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
                                             <ImageWithFallback
@@ -528,7 +504,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 <div className="flex w-full gap-4 opacity-0">
                     {Array.from({ length: 3 }).map((_, colIndex) => (
                         <div key={colIndex} className="flex flex-col gap-4 flex-1">
-                            {galleryImages.slice(0, 2).map((img, i) => (
+                            {initialImages.slice(0, 2).map((img, i) => (
                                 <div key={i} className="aspect-square bg-white/5 rounded-2xl animate-pulse w-full" />
                             ))}
                         </div>
@@ -639,7 +615,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 <div className="text-center py-40">
                     <Camera className="w-12 h-12 text-white/10 mx-auto mb-4" />
                     <p className="text-xl text-[#94A3B8] font-serif">
-                        No captures found in this category
+                        No captures found in this album
                     </p>
                 </div>
             )}
