@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo, useEffect } from "react";
 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Share2, Music, Calendar, ArrowLeft, Layers, Star, Zap } from "lucide-react";
+import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Share2, Music, Calendar, ArrowLeft, Layers, Star, Zap, Grid } from "lucide-react";
 
 /* ================= TYPES ================= */
 type GalleryImage = {
@@ -14,7 +14,7 @@ type GalleryImage = {
     album: string;
 };
 
-type AlbumId = "Concerts" | "Events" | "Anwesha" | "Kaizen";
+type AlbumId = "All" | "Concerts" | "Events" | "Anwesha" | "Kaizen";
 
 type AlbumConfig = {
     id: AlbumId;
@@ -33,6 +33,20 @@ type AlbumConfig = {
 
 /* ================= ALBUM DEFINITIONS ================= */
 const ALBUM_CONFIGS: AlbumConfig[] = [
+    {
+        id: "All",
+        label: "All Photos",
+        description: "Every shot in the collection",
+        icon: <Grid className="w-6 h-6" />,
+        activeColor: "#A78BFA",
+        activeBg: "from-[#A78BFA]/20 via-[#1A1F2E] to-[#1A1F2E]",
+        activeShadow: "shadow-[0_0_30px_rgba(167,139,250,0.2)]",
+        activeBorder: "border-[#A78BFA]",
+        activeBadgeBg: "bg-[#A78BFA]/20",
+        activeBadgeBorder: "border-[#A78BFA]/50",
+        activeBadgeText: "text-[#C4B5FD]",
+        tagMatch: () => true,
+    },
     {
         id: "Concerts",
         label: "Concerts",
@@ -95,7 +109,7 @@ const ALBUM_CONFIGS: AlbumConfig[] = [
 export function Gallery({ initialImages = [], initialTags = [] }: { initialImages?: GalleryImage[], initialTags?: string[] }) {
     const allTags = initialTags;
     const [mounted, setMounted] = useState(false);
-    const [activeAlbum, setActiveAlbum] = useState<AlbumId>("Concerts");
+    const [activeAlbum, setActiveAlbum] = useState<AlbumId>("All");
 
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [tapIndex, setTapIndex] = useState<number | null>(null);
@@ -122,6 +136,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
     /* ================= ALBUM IMAGE SETS ================= */
     const albumImages = useMemo(() => {
         const sets: Record<AlbumId, GalleryImage[]> = {
+            All: [],
             Concerts: [],
             Events: [],
             Anwesha: [],
@@ -242,7 +257,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                         >
                             <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10 flex-shrink-0">
                                 <h2 className="text-2xl font-serif text-white">
-                                    Filter Tags {isTagFilterActive ? "(Global)" : `(${activeAlbum})`}
+                                    Filter Tags {isTagFilterActive ? "(Global)" : `(${activeConfig.label})`}
                                 </h2>
                                 <div className="flex items-center gap-4">
                                     {selectedTags.length > 0 && (
@@ -310,12 +325,12 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                             className="font-semibold transition-colors"
                             style={{ color: activeConfig.activeColor }}
                         >
-                            {activeAlbum}
+                            {activeConfig.label}
                         </span>
                     </div>
 
                     <h1 className="text-4xl text-white tracking-widest font-serif flex items-center gap-3">
-                        {activeAlbum.toUpperCase()}
+                        {activeConfig.label.toUpperCase()}
                     </h1>
                     <p className="text-sm text-[#94A3B8] mt-1">{activeConfig.description}</p>
                 </div>
@@ -354,7 +369,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
             {/* ================= TOP-LEVEL ALBUMS SELECTOR ================= */}
             {!isTagFilterActive && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12 max-w-5xl mx-auto">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-12 max-w-5xl mx-auto">
                     {ALBUM_CONFIGS.map((cfg) => {
                         const isActive = activeAlbum === cfg.id;
                         const imgs = albumImages[cfg.id];
@@ -422,7 +437,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                         onClick={() => setSelectedTags([])}
                         className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-3 rounded-full border border-white/10 text-white text-sm transition-all"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Back to {activeAlbum}
+                        <ArrowLeft className="w-4 h-4" /> Back to {activeConfig.label}
                     </button>
                 </div>
             )}
