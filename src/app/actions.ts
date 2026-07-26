@@ -73,18 +73,27 @@ async function autoPruneTags() {
 }
 
 export async function login(username: string, password: string) {
-  const envUser = process.env.ADMIN_USERNAME || "admin";
-  const envPassHash = process.env.ADMIN_PASSWORD || "$2a$10$YourDefaultHashHere"; 
+  const envUser = process.env.ADMIN_USERNAME;
+  const envPassHash = process.env.ADMIN_PASSWORD;
+
+  if (!envUser || !envPassHash) {
+    console.error("Missing ADMIN_USERNAME or ADMIN_PASSWORD environment variables");
+    return { success: false, error: "Authentication configuration error" };
+  }
 
   const isHash = envPassHash.startsWith("$2a$");
 
   if (username === envUser) {
     const isValid = isHash
       ? await bcrypt.compare(password, envPassHash)
-      : password === envPassHash;
+      : false; // Block plain-text comparison for security
+
+    if (!isHash) {
+      console.warn("ADMIN_PASSWORD is not hashed. Please use a bcrypt hash.");
+    }
 
     if (isValid) {
-      (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/" });
+      (await cookies()).set("admin_session", "true", { httpOnly: true, path: "/", secure: process.env.NODE_ENV === "production", sameSite: "strict" });
       return { success: true };
     }
   }
