@@ -62,5 +62,21 @@
     "icon": "Music",
     "color": "#F59E0B",
     "image": "https://ik.imagekit.io/aayushrambo8/compressed_DSC_1208.jpg"
+  },
+  {
+    "title": "Kaffa House",
+    "description": "Professional photography for concerts and live shows",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/Akash%20Chauhan-5.jpg?updatedAt=1785108347731"
+  },
+  {
+    "title": "Infinito'26",
+    "description": "Professional photography collaboration",
+    "type": "artist",
+    "icon": "Music",
+    "color": "#F59E0B",
+    "image": "https://ik.imagekit.io/aayushrambo8/Raj%20Barman%20(1).jpg?updatedAt=1793359491206"
   }
 ]
