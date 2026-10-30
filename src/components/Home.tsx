@@ -370,7 +370,7 @@ export function Home({
                       <ImageWithFallback
                         src={event.image}
                         alt={event.title}
-                        className={`w-full h-full object-cover ${event.title === "Sunanda Sharma" ? "object-center" : "object-top"} transition-transform duration-700 group-hover/img:scale-110`}
+                        className={`w-full h-full object-cover ${event.title === "Sunanda Sharma" ? "object-center" : event.title === "Infinito'26" ? "object-bottom" : "object-top"} transition-transform duration-700 group-hover/img:scale-110`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0A0E1A] via-[#0A0E1A]/50 to-transparent opacity-80" />
                       <div
