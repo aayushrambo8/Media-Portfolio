@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useRef, useMemo, useEffect } from "react";
 
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Share2, Music, Calendar, ArrowLeft, Layers, Star, Zap, Grid } from "lucide-react";
+import { Camera, Filter, X, Check, ChevronLeft, ChevronRight, Share2, Music, Calendar, ArrowLeft, Layers, Star, Zap, Grid, Shuffle } from "lucide-react";
 
 /* ================= TYPES ================= */
 type GalleryImage = {
@@ -105,9 +105,20 @@ const ALBUM_CONFIGS: AlbumConfig[] = [
     },
 ];
 
+/* ================= HELPERS ================= */
+function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
 /* ================= COMPONENT ================= */
 export function Gallery({ initialImages = [], initialTags = [] }: { initialImages?: GalleryImage[], initialTags?: string[] }) {
     const allTags = initialTags;
+    const [images, setImages] = useState<GalleryImage[]>(initialImages);
     const [mounted, setMounted] = useState(false);
     const [activeAlbum, setActiveAlbum] = useState<AlbumId>("All");
 
@@ -123,6 +134,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
 
     useEffect(() => {
         setMounted(true);
+        setImages(shuffleArray(initialImages));
         const updateCols = () => {
             if (window.innerWidth >= 1024) setNumCols(3);
             else if (window.innerWidth >= 768) setNumCols(2);
@@ -131,7 +143,12 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
         updateCols();
         window.addEventListener('resize', updateCols);
         return () => window.removeEventListener('resize', updateCols);
-    }, []);
+    }, [initialImages]);
+
+    const handleShuffle = () => {
+        setLightboxIndex(null);
+        setImages(prev => shuffleArray(prev));
+    };
 
     /* ================= ALBUM IMAGE SETS ================= */
     const albumImages = useMemo(() => {
@@ -143,7 +160,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
             Kaizen: [],
         };
 
-        initialImages.forEach(img => {
+        images.forEach(img => {
             ALBUM_CONFIGS.forEach(cfg => {
                 if (cfg.tagMatch(img.tags || "", img.album || "")) {
                     sets[cfg.id].push(img);
@@ -152,7 +169,7 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
         });
 
         return sets;
-    }, [initialImages]);
+    }, [images]);
 
     const currentAlbumImages = useMemo(() => {
         return albumImages[activeAlbum] || [];
@@ -164,11 +181,11 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
     const filteredImages = useMemo(() => {
         if (!isTagFilterActive) return currentAlbumImages;
 
-        return initialImages.filter((img) => {
+        return images.filter((img) => {
             const imgTags = img.tags.split(",").map((t: string) => t.trim());
             return selectedTags.some((tag: string) => imgTags.includes(tag));
         });
-    }, [isTagFilterActive, initialImages, currentAlbumImages, selectedTags]);
+    }, [isTagFilterActive, images, currentAlbumImages, selectedTags]);
 
     const toggleTag = (tag: string) => {
         setSelectedTags((prev) =>
@@ -336,6 +353,14 @@ export function Gallery({ initialImages = [], initialTags = [] }: { initialImage
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleShuffle}
+                        title="Randomize arrangement"
+                        className="flex items-center gap-2 px-5 py-3 rounded-full backdrop-blur-md transition-all duration-300 border bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/20 active:scale-95"
+                    >
+                        <Shuffle className="w-4 h-4 text-[#F59E0B]" />
+                        <span className="hidden sm:inline">Shuffle</span>
+                    </button>
                     <button
                         onClick={() => setIsFilterOpen(true)}
                         className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 border ${isTagFilterActive
